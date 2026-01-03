@@ -7,18 +7,20 @@ from typing import Optional, List
 from sqlalchemy.exc import SQLAlchemyError
 
 from data.db import get_db, EventCompletion
+from services.xp_service import XPService
 
 
 class TaskStatusService:
     """Service for managing event completion status."""
     
     @staticmethod
-    def mark_event_done(event_id: str) -> bool:
+    def mark_event_done(event_id: str, description: Optional[str] = None) -> bool:
         """
-        Mark an event as done and record the completion timestamp.
+        Mark an event as done and record the completion timestamp and description.
         
         Args:
             event_id: Google Calendar event ID
+            description: Optional description of what was accomplished
             
         Returns:
             True if successful, False otherwise
@@ -37,17 +39,27 @@ class TaskStatusService:
                 # Update existing record
                 completion.is_done = True
                 completion.completed_at = local_now
+                completion.completion_description = description
                 completion.updated_at = local_now
             else:
                 # Create new record
                 completion = EventCompletion(
                     event_id=event_id_str,
                     is_done=True,
-                    completed_at=local_now
+                    completed_at=local_now,
+                    completion_description=description
                 )
                 db.add(completion)
             
             db.commit()
+            
+            # Award XP points for task completion
+            try:
+                XPService.add_xp(XPService.XP_PER_TASK, event_id=event_id_str, description=f"Task completed: {event_id_str}")
+            except Exception:
+                # Don't fail the task completion if XP fails
+                pass
+            
             return True
         except SQLAlchemyError as e:
             print(f"Error marking event as done: {e}")
@@ -96,6 +108,13 @@ class TaskStatusService:
                 )
                 db.add(completion)
                 db.commit()
+            
+            # Deduct XP points for marking task as undone
+            try:
+                XPService.deduct_xp(XPService.XP_PER_TASK, event_id=event_id, description=f"Task undone: {event_id}")
+            except Exception:
+                # Don't fail the task undo if XP fails
+                pass
             
             return True
         except SQLAlchemyError as e:
@@ -196,6 +215,35 @@ class TaskStatusService:
                 db.close()
     
     @staticmethod
+    def get_completion_description(event_id: str) -> Optional[str]:
+        """
+        Get the completion description for an event.
+        
+        Args:
+            event_id: Google Calendar event ID
+            
+        Returns:
+            Completion description or None if not found
+        """
+        db = None
+        try:
+            db = get_db()
+            completion = db.query(EventCompletion).filter(EventCompletion.event_id == event_id).first()
+            
+            if completion and completion.completion_description:
+                return completion.completion_description
+            return None
+        except SQLAlchemyError as e:
+            print(f"Error getting completion description: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error getting completion description: {e}")
+            return None
+        finally:
+            if db:
+                db.close()
+    
+    @staticmethod
     def get_completion_status_batch(event_ids: List[str]) -> dict:
         """
         Get completion status for multiple events in one query (for performance).
@@ -204,13 +252,14 @@ class TaskStatusService:
             event_ids: List of Google Calendar event IDs
             
         Returns:
-            Dictionary mapping event_id to (is_done, completed_at) tuple
+            Dictionary mapping event_id to (is_done, completed_at, description) tuple
         """
         db = None
         try:
             db = get_db()
             # Ensure all event_ids are strings for comparison
             event_ids_str = [str(eid) for eid in event_ids]
+            
             completions = db.query(EventCompletion).filter(EventCompletion.event_id.in_(event_ids_str)).all()
             
             result = {}
@@ -218,20 +267,24 @@ class TaskStatusService:
                 # Return stored local time (already in local timezone)
                 # Ensure event_id is string for consistent lookup
                 event_id_key = str(completion.event_id)
-                result[event_id_key] = (bool(completion.is_done), completion.completed_at)
+                result[event_id_key] = (
+                    bool(completion.is_done), 
+                    completion.completed_at,
+                    completion.completion_description
+                )
             
             # Add False for events not in database
             for event_id in event_ids_str:
                 if event_id not in result:
-                    result[event_id] = (False, None)
+                    result[event_id] = (False, None, None)
             
             return result
         except SQLAlchemyError as e:
             print(f"Error getting batch completion status: {e}")
-            return {event_id: (False, None) for event_id in event_ids}
+            return {event_id: (False, None, None) for event_id in event_ids}
         except Exception as e:
             print(f"Unexpected error getting batch completion status: {e}")
-            return {event_id: (False, None) for event_id in event_ids}
+            return {event_id: (False, None, None) for event_id in event_ids}
         finally:
             if db:
                 db.close()

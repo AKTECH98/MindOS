@@ -2,6 +2,7 @@ import streamlit as st
 
 from config import APP_TITLE
 from ui.components.calendar_events import render_calendar_events
+from ui.components.xp_bar import render_xp_bar
 from data.db import init_db
 
 @st.cache_resource
@@ -20,6 +21,10 @@ def main():
     initialize_app()
 
     st.title("🧠 MindOS")
+
+    # XP Bar Section
+    render_xp_bar()
+    st.divider()
 
     # Calendar Events Section
     render_calendar_events()

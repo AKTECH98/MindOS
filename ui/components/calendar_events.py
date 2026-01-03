@@ -67,7 +67,7 @@ def extract_base_event_id(event_id: str) -> str:
     return str(event_id)
 
 
-def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional[datetime] = None, debug_mode: bool = False):
+def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional[datetime] = None, completion_description: Optional[str] = None, debug_mode: bool = False):
     """
     Render a single event as a card with checkbox and edit button.
     
@@ -131,29 +131,96 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
             return f"{minutes}:{secs:02d}"
         
         # Checkbox and Title row
-        col_check, col_title, col_edit = st.columns([1, 8, 1])
+        if is_done:
+            # For done tasks: checkbox only (no edit button)
+            col_check, col_title = st.columns([1, 11])
+        else:
+            # For pending tasks: checkbox, title, and edit button
+            col_check, col_title, col_edit = st.columns([1, 8, 1])
         
         with col_check:
             # Checkbox for marking as done
             checkbox_key = f"done_{unique_event_key}"
-            new_done_state = st.checkbox(
-                "",
-                value=is_done,
-                key=checkbox_key,
-                label_visibility="collapsed",
-                disabled=is_session_running
+            
+            # Check if we're in the middle of showing description input
+            showing_description = st.session_state.get(f'show_description_input_{unique_event_key}', False)
+            
+            # Only show checkbox if not showing description input
+            if not showing_description:
+                new_done_state = st.checkbox(
+                    "Mark as done",
+                    value=is_done,
+                    key=checkbox_key,
+                    label_visibility="collapsed",
+                    disabled=is_session_running
+                )
+                
+                # Handle checkbox state change
+                if new_done_state != is_done:
+                    # Extract base event_id for completion tracking
+                    base_event_id = extract_base_event_id(event_id)
+                    
+                    if new_done_state:
+                        # Show description input when marking as done
+                        st.session_state[f'show_description_input_{unique_event_key}'] = True
+                        st.rerun()
+                    else:
+                        # Unchecking - mark as undone immediately
+                        TaskStatusService.mark_event_undone(base_event_id)
+                        if 'calendar_events' in st.session_state:
+                            del st.session_state['calendar_events']
+                        # Clear XP bar cache if it exists
+                        if hasattr(st.session_state, 'xp_info'):
+                            del st.session_state['xp_info']
+                        st.rerun()
+            else:
+                # Show a disabled checkbox to maintain layout
+                st.checkbox(
+                    "Mark as done",
+                    value=True,
+                    key=f"disabled_{checkbox_key}",
+                    label_visibility="collapsed",
+                    disabled=True
+                )
+        
+        # Show description input form when marking as done
+        if st.session_state.get(f'show_description_input_{unique_event_key}', False) and not is_done:
+            st.info("📝 Please describe what you accomplished:")
+            description = st.text_area(
+                "Completion Description",
+                key=f"description_input_{unique_event_key}",
+                placeholder="Enter what you accomplished in this task...",
+                height=100,
+                label_visibility="collapsed"
             )
             
-            # Handle checkbox state change
-            if new_done_state != is_done:
-                # Extract base event_id for completion tracking
-                base_event_id = extract_base_event_id(event_id)
-                
-                if new_done_state:
-                    TaskStatusService.mark_event_done(base_event_id)
-                    st.rerun()
-                else:
-                    TaskStatusService.mark_event_undone(base_event_id)
+            col_save, col_cancel = st.columns([1, 1])
+            with col_save:
+                if st.button("✅ Save", key=f"save_description_{unique_event_key}", use_container_width=True, type="primary"):
+                    base_event_id = extract_base_event_id(event_id)
+                    description_text = description.strip() if description else None
+                    success = TaskStatusService.mark_event_done(base_event_id, description=description_text)
+                    if success:
+                        # Clear all related state
+                        st.session_state[f'show_description_input_{unique_event_key}'] = False
+                        # Clear the description input value
+                        if f"description_input_{unique_event_key}" in st.session_state:
+                            del st.session_state[f"description_input_{unique_event_key}"]
+                        # Clear cache to force refresh
+                        if 'calendar_events' in st.session_state:
+                            del st.session_state['calendar_events']
+                        # Clear XP bar cache if it exists
+                        if hasattr(st.session_state, 'xp_info'):
+                            del st.session_state['xp_info']
+                        st.rerun()
+                    else:
+                        st.error("Failed to save completion. Please try again.")
+            with col_cancel:
+                if st.button("❌ Cancel", key=f"cancel_description_{unique_event_key}", use_container_width=True):
+                    # Just clear the description input flag - checkbox will revert naturally
+                    st.session_state[f'show_description_input_{unique_event_key}'] = False
+                    if 'calendar_events' in st.session_state:
+                        del st.session_state['calendar_events']
                     st.rerun()
         
         with col_title:
@@ -163,18 +230,19 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
             else:
                 st.markdown(f"### {title}")
             
-            # Show session status and timer
-            if is_session_running:
+            # Show session status and timer (only for pending tasks)
+            if not is_done and is_session_running:
                 st.markdown(f"⏱️ **Running:** {format_duration(current_duration)}")
         
-        with col_edit:
-            # Edit button
-            edit_key = f"edit_{unique_event_key}"
-            if st.button("✏️", key=edit_key, help="Edit event"):
-                st.session_state[f'edit_event_{unique_event_key}'] = True
-                st.rerun()
+        # Edit button (only for pending tasks)
+        if not is_done:
+            with col_edit:
+                edit_key = f"edit_{unique_event_key}"
+                if st.button("✏️", key=edit_key, help="Edit event"):
+                    st.session_state[f'edit_event_{unique_event_key}'] = True
+                    st.rerun()
         
-        # Time tracking controls
+        # Time tracking controls (only for pending tasks)
         if not is_done:
             col_start, col_pause = st.columns([1, 1])
             
@@ -199,18 +267,24 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                     st.rerun()
             
             # Show total time spent
+            base_event_id = extract_base_event_id(event_id)
             total_time = TaskSessionService.get_total_time_spent(base_event_id)
             if total_time > 0:
                 st.markdown(f"**Total time spent:** {format_duration(total_time)}")
         
-        # Time
+        # Time (show for all tasks)
         time_str = format_time(event)
         st.markdown(f"**🕐 {time_str}**")
         
-        # Completion timestamp if done
+        # Completion timestamp if done (show prominently for completed tasks)
         if is_done and completed_at:
             completed_str = completed_at.strftime("%Y-%m-%d %I:%M %p")
             st.markdown(f"**✅ Completed on:** {completed_str}")
+        
+        # Completion description if done
+        if is_done and completion_description:
+            st.markdown(f"**📝 What I accomplished:**")
+            st.info(completion_description)
         
         # Recurrence
         recurrence = event.get('recurrence')
@@ -237,8 +311,8 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
         
         st.divider()
         
-        # Show edit form if edit button was clicked
-        if st.session_state.get(f'edit_event_{unique_event_key}', False):
+        # Show edit form if edit button was clicked (only for pending tasks)
+        if not is_done and st.session_state.get(f'edit_event_{unique_event_key}', False):
             calendar_service = get_calendar_service()
             result = render_edit_event_form(calendar_service, event)
             if result:
@@ -347,8 +421,8 @@ def render_calendar_events():
         
         # Get completion status for all events (batch query for performance)
         # Extract base event_id (remove timestamp suffix if present) for database lookup
-        base_event_ids = []
-        event_id_map = {}  # Map base_id -> original_id for lookup
+        base_event_ids_set = set()  # Use set to ensure uniqueness
+        event_id_map = {}  # Map event_id_str -> base_id for lookup
         for event in events:
             event_id = event.get('id')
             if event_id:
@@ -356,15 +430,39 @@ def render_calendar_events():
                 # Extract base event_id (remove timestamp suffix if present)
                 base_id = extract_base_event_id(event_id_str)
                 
-                base_event_ids.append(base_id)
+                base_event_ids_set.add(base_id)
                 event_id_map[event_id_str] = base_id
+        
+        base_event_ids = list(base_event_ids_set)
         
         completion_status_raw = TaskStatusService.get_completion_status_batch(base_event_ids) if base_event_ids else {}
         
+        # Debug: Print raw completion status
+        if debug_mode:
+            st.write("**Raw Completion Status (by base_id):**")
+            st.json(completion_status_raw)
+            st.write("**Event ID Mapping:**")
+            st.json(event_id_map)
+            st.write("**Base Event IDs queried:**")
+            st.json(base_event_ids)
+        
         # Map completion status back to original event_ids (with timestamps)
+        # All events with the same base_id will share the same completion status
         completion_status = {}
         for event_id_str, base_id in event_id_map.items():
-            completion_status[event_id_str] = completion_status_raw.get(base_id, (False, None))
+            # Try to get status by base_id
+            status_data = completion_status_raw.get(base_id, (False, None, None))
+            
+            # Also try direct lookup in case there's a mismatch
+            if status_data == (False, None, None) and event_id_str in completion_status_raw:
+                status_data = completion_status_raw[event_id_str]
+            
+            # Handle both old format (2-tuple) and new format (3-tuple)
+            if len(status_data) == 2:
+                is_done, completed_at = status_data
+                completion_status[event_id_str] = (is_done, completed_at, None)
+            else:
+                completion_status[event_id_str] = status_data
         
         # Debug: Print completion status
         if debug_mode:
@@ -381,7 +479,13 @@ def render_calendar_events():
                 # Use base event_id (without timestamp) for lookup
                 # The database stores completion status by base event_id
                 event_id_str = str(event_id)
-                is_done, completed_at = completion_status.get(event_id_str, (False, None))
+                status_data = completion_status.get(event_id_str, (False, None, None))
+                # Handle both old format (2-tuple) and new format (3-tuple)
+                if len(status_data) == 2:
+                    is_done, completed_at = status_data
+                    completion_description = None
+                else:
+                    is_done, completed_at, completion_description = status_data
                 
                 # Debug output
                 if debug_mode:
@@ -390,7 +494,8 @@ def render_calendar_events():
                 event_data = {
                     'event': event,
                     'is_done': is_done,
-                    'completed_at': completed_at
+                    'completed_at': completed_at,
+                    'completion_description': completion_description
                 }
                 if is_done:
                     done_events.append(event_data)
@@ -414,6 +519,7 @@ def render_calendar_events():
                             event_data['event'],
                             is_done=False,
                             completed_at=None,
+                            completion_description=None,
                             debug_mode=debug_mode
                         )
                 else:
@@ -429,6 +535,7 @@ def render_calendar_events():
                             event_data['event'],
                             is_done=True,
                             completed_at=event_data['completed_at'],
+                            completion_description=event_data.get('completion_description'),
                             debug_mode=debug_mode
                         )
                 else:
