@@ -71,9 +71,9 @@ fi
 echo "⚠️  WARNING: This will REPLACE all data in the development database!"
 echo "   Development database: $DB_NAME"
 echo "   Backup file: $BACKUP_FILE"
-read -p "Are you sure? Type 'RESTORE' to confirm: " -r
+read -p "Are you sure? Type 'y' to confirm: " -r
 echo
-if [ "$REPLY" != "RESTORE" ]; then
+if [ "$REPLY" != "y" ]; then
     echo "❌ Aborted."
     exit 1
 fi
