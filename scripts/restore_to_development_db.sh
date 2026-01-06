@@ -99,37 +99,61 @@ RESTORE_OUTPUT=$(mktemp)
 RESTORE_ERROR=0
 
 if [[ "$BACKUP_FILE" == *.gz ]]; then
-    # Decompress and restore
+    # Decompress and restore with ON_ERROR_STOP to catch errors
     echo "   Decompressing and restoring..."
-    gunzip -c "$BACKUP_FILE" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" > "$RESTORE_OUTPUT" 2>&1
+    gunzip -c "$BACKUP_FILE" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+        --set ON_ERROR_STOP=on \
+        > "$RESTORE_OUTPUT" 2>&1
     RESTORE_ERROR=$?
 else
-    # Restore directly
+    # Restore directly with ON_ERROR_STOP
     echo "   Restoring..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE" > "$RESTORE_OUTPUT" 2>&1
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+        --set ON_ERROR_STOP=on \
+        < "$BACKUP_FILE" > "$RESTORE_OUTPUT" 2>&1
     RESTORE_ERROR=$?
 fi
 
-# Show restore output (filter out common warnings)
+# Check for errors in output (even if exit code is 0)
+HAS_ERRORS=$(grep -i "ERROR\|FATAL\|failed" "$RESTORE_OUTPUT" | grep -v "already exists" | grep -v "does not exist" || true)
+
+# Show restore output - show errors first, then warnings
 if [ -s "$RESTORE_OUTPUT" ]; then
     echo ""
-    echo "Restore output:"
-    grep -v "already exists" "$RESTORE_OUTPUT" | grep -v "does not exist" | head -20
-    if [ $(wc -l < "$RESTORE_OUTPUT") -gt 20 ]; then
-        echo "... (output truncated)"
+    if [ -n "$HAS_ERRORS" ]; then
+        echo "❌ ERRORS FOUND during restore:"
+        echo "$HAS_ERRORS" | head -20
+        echo ""
+    fi
+    
+    echo "Restore output (showing important messages):"
+    # Show errors, warnings, and important messages
+    grep -E "ERROR|WARNING|FATAL|INSERT|COPY|ALTER|CREATE" "$RESTORE_OUTPUT" | \
+        grep -v "already exists" | \
+        grep -v "does not exist, skipping" | \
+        head -30
+    
+    # Show summary of lines processed
+    TOTAL_LINES=$(wc -l < "$RESTORE_OUTPUT")
+    if [ "$TOTAL_LINES" -gt 30 ]; then
+        echo "... (showing first 30 important lines of $TOTAL_LINES total)"
     fi
     echo ""
+fi
+
+# If we found errors, treat as failure
+if [ -n "$HAS_ERRORS" ]; then
+    RESTORE_ERROR=1
 fi
 
 rm -f "$RESTORE_OUTPUT"
 
 if [ $RESTORE_ERROR -eq 0 ]; then
-    echo "✅ Database restored successfully!"
-    echo "   Development database now contains production backup data"
+    echo "✅ SQL restore completed!"
     
     # Verify restore by checking table counts
     echo ""
-    echo "Verifying restore..."
+    echo "Verifying restore - checking record counts..."
     TABLE_COUNTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
         SELECT 'event_completions: ' || COUNT(*) FROM event_completions
         UNION ALL
@@ -143,12 +167,29 @@ if [ $RESTORE_ERROR -eq 0 ]; then
     " 2>/dev/null)
     
     if [ -n "$TABLE_COUNTS" ]; then
-        echo "   Record counts:"
+        echo "   Record counts after restore:"
         echo "$TABLE_COUNTS" | sed 's/^/      /'
+        
+        # Check if any tables are unexpectedly empty
+        EMPTY_TABLES=$(echo "$TABLE_COUNTS" | grep -E ":\s+0$" || true)
+        if [ -n "$EMPTY_TABLES" ]; then
+            echo ""
+            echo "⚠️  WARNING: Some tables appear empty:"
+            echo "$EMPTY_TABLES" | sed 's/^/      /'
+            echo "   This might indicate the restore was incomplete."
+        fi
+    else
+        echo "   ⚠️  Could not verify table counts"
     fi
+    
+    echo ""
+    echo "✅ Database restore process completed!"
+    echo "   Please verify the record counts match production."
 else
+    echo ""
     echo "❌ Restore failed with exit code: $RESTORE_ERROR"
-    echo "   Check the output above for errors"
+    echo "   Check the errors above for details"
+    echo "   The restore may be incomplete - verify your data!"
     unset PGPASSWORD
     exit 1
 fi
