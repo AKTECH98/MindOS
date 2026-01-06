@@ -61,6 +61,18 @@ class XPTransaction(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class DailyXPDeduction(Base):
+    """Model for tracking daily XP deduction runs."""
+    __tablename__ = 'daily_xp_deduction'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    last_run_date = Column(DateTime, nullable=False, unique=True, index=True)  # Date when deduction last ran
+    pending_count = Column(Integer, default=0, nullable=False)
+    deducted_count = Column(Integer, default=0, nullable=False)
+    total_xp_deducted = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 # Global engine and session factory
 _engine = None
 _SessionLocal = None
@@ -113,6 +125,8 @@ def get_db() -> Session:
     """Get database session."""
     if _SessionLocal is None:
         init_db()
+    if _SessionLocal is None:
+        raise RuntimeError("Database session factory not initialized")
     return _SessionLocal()
 
 

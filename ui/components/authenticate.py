@@ -3,12 +3,11 @@ Authentication UI Component
 Handles Google Calendar authentication within Streamlit.
 """
 import streamlit as st
-import subprocess
-import sys
 from pathlib import Path
 import time
 
 from config import TOKEN_FILE
+from integrations.gcal_authentication import authenticate as run_google_auth
 
 
 def check_credentials_file() -> bool:
@@ -19,42 +18,21 @@ def check_credentials_file() -> bool:
 
 def run_authentication() -> bool:
     """
-    Run the authentication script in a subprocess.
+    Run the authentication function directly.
     
     Returns:
         True if authentication was successful, False otherwise
     """
-    script_path = Path(__file__).parent.parent.parent / "scripts" / "authenticate.py"
-    
     try:
-        # Run the authentication script
-        # Use Popen to allow real-time output
-        process = subprocess.Popen(
-            [sys.executable, str(script_path)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1
-        )
-        
-        # Wait for completion with timeout
-        try:
-            stdout, stderr = process.communicate(timeout=300)  # 5 minute timeout
-            
-            if process.returncode == 0:
-                return True
-            else:
-                if stderr:
-                    st.error(f"Authentication failed: {stderr}")
-                else:
-                    st.error("Authentication failed. Please check your credentials.")
-                return False
-        except subprocess.TimeoutExpired:
-            process.kill()
-            st.error("Authentication timed out. Please try again.")
-            return False
+        # Call the authentication function directly
+        success = run_google_auth()
+        return success
+    except FileNotFoundError as e:
+        # Credentials.json not found
+        st.error(str(e))
+        return False
     except Exception as e:
-        st.error(f"Error running authentication: {str(e)}")
+        st.error(f"Authentication failed: {str(e)}")
         return False
 
 
@@ -161,7 +139,7 @@ def render_authentication_prompt():
     If the button above doesn't work, you can also run this command in your terminal:
     
     ```bash
-    python scripts/authenticate.py
+    python integrations/gcal_authentication.py
     ```
     
     Then refresh this page.

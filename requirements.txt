@@ -8,4 +8,9 @@ python-dateutil
 tzlocal
 sqlalchemy
 psycopg
+discord.py
+langchain
+langchain-google-genai
+apscheduler
+pydantic>=2.0
 

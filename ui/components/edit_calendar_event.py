@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, date, time
 from typing import Optional, Dict
 
-from services.calendar_service import CalendarService
+from integrations.gcalendar import CalendarService
 
 
 def render_edit_event_form(calendar_service: CalendarService, event: Dict) -> Optional[Dict]:

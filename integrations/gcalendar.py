@@ -3,7 +3,7 @@ Google Calendar Service
 Handles authentication and fetching events from Google Calendar API.
 """
 import json
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
@@ -63,9 +63,9 @@ class CalendarService:
         if not creds or not creds.valid:
             error_msg = "Invalid or expired credentials. Please re-authenticate."
             if not self.token_file.exists():
-                error_msg += "\n\nToken file not found. Run: python scripts/authenticate.py"
+                error_msg += "\n\nToken file not found. Run: python integrations/gcal_authentication.py"
             else:
-                error_msg += "\n\nRun: python scripts/authenticate.py to re-authenticate"
+                error_msg += "\n\nRun: python integrations/gcal_authentication.py to re-authenticate"
             
             if self.require_auth:
                 raise ValueError(error_msg)
@@ -80,7 +80,7 @@ class CalendarService:
             print(f"Warning: Token scopes ({creds.scopes}) don't match required scopes ({CALENDAR_SCOPE})")
             print("Re-authentication required with new scopes.")
             raise ValueError(
-                "Token scopes don't match. Please re-authenticate with: python scripts/authenticate.py"
+                "Token scopes don't match. Please re-authenticate with: python integrations/gcal_authentication.py"
             )
         
         self.credentials = creds
@@ -122,18 +122,22 @@ class CalendarService:
         with open(self.token_file, 'w') as token:
             json.dump(token_data, token)
     
-    def get_today_events(self) -> List[Dict]:
+    def get_events_for_date(self, target_date: date) -> List[Dict]:
         """
-        Fetch all events for the current day.
+        Fetch all events for a specific date.
         
+        Args:
+            target_date: Date object for which to fetch events
+            
         Returns:
             List of event dictionaries with parsed details.
         """
         try:
-            # Get start and end of today in UTC
-            now = datetime.now(tz.tzlocal())
-            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            # Get start and end of the target date in local timezone
+            start_of_day = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=tz.tzlocal())
+            end_of_day = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=tz.tzlocal())
+            # Set end time to 23:59:59.999999
+            end_of_day = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             # Convert to RFC3339 format for API
             time_min = start_of_day.isoformat()
@@ -224,6 +228,16 @@ class CalendarService:
         except Exception as e:
             print(f"Unexpected error: {e}")
             raise
+    
+    def get_today_events(self) -> List[Dict]:
+        """
+        Fetch all events for the current day.
+        
+        Returns:
+            List of event dictionaries with parsed details.
+        """
+        from datetime import date
+        return self.get_events_for_date(date.today())
     
     def create_event(
         self,

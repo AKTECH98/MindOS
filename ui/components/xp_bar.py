@@ -4,7 +4,7 @@ Displays user XP progress and level information.
 """
 import streamlit as st
 
-from services.xp_service import XPService
+from core.xp import XPCore
 
 
 def render_xp_bar():
@@ -15,7 +15,8 @@ def render_xp_bar():
     """
     try:
         # Always get fresh XP info (no caching)
-        xp_info = XPService.get_xp_info()
+        xp_core = XPCore()
+        xp_info = xp_core.get_xp_info()
         
         total_xp = xp_info['total_xp']
         level = xp_info['level']
@@ -29,10 +30,10 @@ def render_xp_bar():
             # Show level and total XP with color based on sign
             if total_xp < 0:
                 st.markdown(f"### 🎮 Level {level}")
-                st.caption(f"**Total: <span style='color: red;'>{total_xp} XP</span>**", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 16px;'><strong>Total: <span style='color: red;'>{total_xp} XP</span></strong></span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"### 🎮 Level {level}")
-                st.caption(f"**Total: <span style='color: green;'>{total_xp} XP</span>**", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 16px;'><strong>Total: <span style='color: green;'>{total_xp} XP</span></strong></span>", unsafe_allow_html=True)
         
         with col_progress:
             if total_xp < 0:
