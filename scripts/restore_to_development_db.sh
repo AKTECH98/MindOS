@@ -94,19 +94,61 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "
 " 2>/dev/null || true
 
 # Restore backup
+echo "   Restoring from: $BACKUP_FILE"
+RESTORE_OUTPUT=$(mktemp)
+RESTORE_ERROR=0
+
 if [[ "$BACKUP_FILE" == *.gz ]]; then
     # Decompress and restore
-    gunzip -c "$BACKUP_FILE" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" 2>&1
+    echo "   Decompressing and restoring..."
+    gunzip -c "$BACKUP_FILE" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" > "$RESTORE_OUTPUT" 2>&1
+    RESTORE_ERROR=$?
 else
     # Restore directly
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE" 2>&1
+    echo "   Restoring..."
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE" > "$RESTORE_OUTPUT" 2>&1
+    RESTORE_ERROR=$?
 fi
 
-if [ $? -eq 0 ]; then
+# Show restore output (filter out common warnings)
+if [ -s "$RESTORE_OUTPUT" ]; then
+    echo ""
+    echo "Restore output:"
+    grep -v "already exists" "$RESTORE_OUTPUT" | grep -v "does not exist" | head -20
+    if [ $(wc -l < "$RESTORE_OUTPUT") -gt 20 ]; then
+        echo "... (output truncated)"
+    fi
+    echo ""
+fi
+
+rm -f "$RESTORE_OUTPUT"
+
+if [ $RESTORE_ERROR -eq 0 ]; then
     echo "✅ Database restored successfully!"
     echo "   Development database now contains production backup data"
+    
+    # Verify restore by checking table counts
+    echo ""
+    echo "Verifying restore..."
+    TABLE_COUNTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+        SELECT 'event_completions: ' || COUNT(*) FROM event_completions
+        UNION ALL
+        SELECT 'task_sessions: ' || COUNT(*) FROM task_sessions
+        UNION ALL
+        SELECT 'xp_transactions: ' || COUNT(*) FROM xp_transactions
+        UNION ALL
+        SELECT 'user_xp: ' || COUNT(*) FROM user_xp
+        UNION ALL
+        SELECT 'daily_xp_deduction: ' || COUNT(*) FROM daily_xp_deduction;
+    " 2>/dev/null)
+    
+    if [ -n "$TABLE_COUNTS" ]; then
+        echo "   Record counts:"
+        echo "$TABLE_COUNTS" | sed 's/^/      /'
+    fi
 else
-    echo "❌ Restore failed!"
+    echo "❌ Restore failed with exit code: $RESTORE_ERROR"
+    echo "   Check the output above for errors"
     unset PGPASSWORD
     exit 1
 fi
