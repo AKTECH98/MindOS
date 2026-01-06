@@ -152,6 +152,10 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.development
+.env.production
+.env.*.local
 .venv
 env/
 venv/
@@ -194,3 +198,9 @@ cython_debug/
 
 .idea/
 secrets/*
+
+# Database backups
+backups/
+*.sql
+*.sql.gz
+*.dump
