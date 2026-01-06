@@ -9,10 +9,15 @@ export ENVIRONMENT=development
 
 # Load development environment variables
 if [ -f .env.development ]; then
-    export $(cat .env.development | grep -v '^#' | xargs)
+    # Properly load .env file handling values with special characters
+    set -a
+    source .env.development
+    set +a
     echo "📝 Loaded .env.development"
 elif [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a
+    source .env
+    set +a
     echo "⚠️  Loaded .env (create .env.development for dev-specific settings)"
 else
     echo "❌ Error: No .env or .env.development file found!"
