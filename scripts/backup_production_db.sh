@@ -86,13 +86,31 @@ fi
 echo ""
 echo "   Creating backup..."
 
-# Create backup using pg_dump with verbose output
+# Create backup using pg_dump
+# Using --data-only would skip schema, but we want both schema and data
+# --clean removes existing objects before creating (for restore)
+# --if-exists prevents errors if objects don't exist
 BACKUP_ERROR=0
 pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-    --clean --if-exists --no-owner --no-acl \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-acl \
     --verbose \
-    -f "$BACKUP_FILE" 2>&1 | grep -E "(dumping|finished)" | head -10
+    -f "$BACKUP_FILE" 2>&1 | tee /tmp/backup_output.log | grep -E "(dumping|finished)" | head -20
 BACKUP_ERROR=${PIPESTATUS[0]}
+
+# Check for errors in backup output
+if [ -f /tmp/backup_output.log ]; then
+    BACKUP_ERRORS=$(grep -i "error\|fatal\|failed" /tmp/backup_output.log || true)
+    if [ -n "$BACKUP_ERRORS" ]; then
+        echo ""
+        echo "⚠️  Warnings/Errors during backup:"
+        echo "$BACKUP_ERRORS" | head -10
+        echo ""
+    fi
+    rm -f /tmp/backup_output.log
+fi
 
 if [ $BACKUP_ERROR -eq 0 ]; then
     # Check if backup file has content
@@ -121,11 +139,24 @@ if [ $BACKUP_ERROR -eq 0 ]; then
     echo ""
     echo "   Verifying backup content..."
     BACKUP_TABLES=$(gunzip -c "$BACKUP_FILE" 2>/dev/null | grep -c "CREATE TABLE" || echo "0")
+    BACKUP_INSERTS=$(gunzip -c "$BACKUP_FILE" 2>/dev/null | grep -c "INSERT\|COPY" || echo "0")
+    
     if [ "$BACKUP_TABLES" -gt 0 ]; then
-        echo "   ✅ Backup contains $BACKUP_TABLES tables"
+        echo "   ✅ Backup contains $BACKUP_TABLES table definitions"
     else
         echo "   ⚠️  Warning: Could not verify tables in backup"
     fi
+    
+    if [ "$BACKUP_INSERTS" -gt 0 ]; then
+        echo "   ✅ Backup contains $BACKUP_INSERTS data operations (INSERT/COPY)"
+    else
+        echo "   ⚠️  Warning: No data operations found in backup - database might be empty"
+    fi
+    
+    # Show a sample of what tables are in the backup
+    echo ""
+    echo "   Tables in backup:"
+    gunzip -c "$BACKUP_FILE" 2>/dev/null | grep "CREATE TABLE" | sed 's/CREATE TABLE //; s/ (.*//' | sed 's/^/     - /' | head -10
 else
     echo "❌ Backup failed with exit code: $BACKUP_ERROR"
     rm -f "$BACKUP_FILE"
