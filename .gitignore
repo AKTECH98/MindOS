@@ -194,3 +194,9 @@ cython_debug/
 
 .idea/
 secrets/*
+
+# Database backups
+backups/
+*.sql
+*.sql.gz
+*.dump
