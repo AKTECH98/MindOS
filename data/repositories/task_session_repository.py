@@ -1,7 +1,7 @@
 """
 Repository for task session operations.
 """
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from typing import Optional, List
 from data.db import TaskSession
 from data.repositories.base_repository import BaseRepository
@@ -140,6 +140,49 @@ class TaskSessionRepository(BaseRepository[TaskSession]):
             return total
         except Exception as e:
             print(f"Error getting total time: {e}")
+            return 0
+    
+    def get_time_spent_for_date(self, event_id: str, target_date: date) -> int:
+        """
+        Get time spent on an event for a specific date (in seconds).
+        Only includes sessions that started on the target date.
+        
+        Args:
+            event_id: Google Calendar event ID
+            target_date: Date to filter sessions by
+            
+        Returns:
+            Time in seconds spent on the target date
+        """
+        try:
+            # Calculate start and end of target date (local time)
+            start_of_day = datetime.combine(target_date, datetime.min.time())
+            end_of_day = datetime.combine(target_date, datetime.max.time()) + timedelta(days=1)
+            
+            # Get all sessions for this event that started on the target date
+            sessions = self.db.query(TaskSession).filter(
+                TaskSession.event_id == event_id,
+                TaskSession.start_time >= start_of_day,
+                TaskSession.start_time < end_of_day
+            ).all()
+            
+            total = 0
+            
+            for session in sessions:
+                if session.status in ['done', 'Paused'] and session.duration_seconds:
+                    # For completed/paused sessions, use the stored duration
+                    total += session.duration_seconds
+                elif session.status == 'running' and session.start_time:
+                    # For running sessions, calculate current duration
+                    now = datetime.now()
+                    current_duration = int((now - session.start_time).total_seconds())
+                    if session.duration_seconds:
+                        current_duration += session.duration_seconds
+                    total += current_duration
+            
+            return total
+        except Exception as e:
+            print(f"Error getting time for date: {e}")
             return 0
     
     def get_current_duration(self, event_id: str) -> Optional[int]:
