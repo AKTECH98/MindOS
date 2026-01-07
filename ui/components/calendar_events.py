@@ -50,7 +50,7 @@ def format_time(event: Dict) -> str:
         return start_str
 
 
-def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional[datetime] = None, completion_description: Optional[str] = None, debug_mode: bool = False):
+def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional[datetime] = None, completion_description: Optional[str] = None, debug_mode: bool = False, selected_date: Optional[date] = None):
     """
     Render a single event as a card with checkbox and edit button.
     
@@ -265,12 +265,22 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                     session_core.pause_session(base_event_id)
                     st.rerun()
             
-            # Show total time spent
+            # Show time spent for the selected date
             base_event_id = extract_base_event_id(event_id)
             session_core = TaskSessionCore()
-            total_time = session_core.get_total_time_spent(base_event_id)
-            if total_time > 0:
-                st.markdown(f"**Total time spent:** {format_duration(total_time)}")
+            if selected_date:
+                time_spent = session_core.get_time_spent_for_date(base_event_id, selected_date)
+                if time_spent > 0:
+                    if selected_date == date.today():
+                        st.markdown(f"**Time spent today:** {format_duration(time_spent)}")
+                    else:
+                        date_str = selected_date.strftime("%B %d, %Y")
+                        st.markdown(f"**Time spent on {date_str}:** {format_duration(time_spent)}")
+            else:
+                # Fallback to total time if no date provided
+                total_time = session_core.get_total_time_spent(base_event_id)
+                if total_time > 0:
+                    st.markdown(f"**Total time spent:** {format_duration(total_time)}")
         
         # For done tasks, only show completion info; for pending tasks, show all details
         if is_done:
@@ -561,7 +571,8 @@ def render_calendar_events():
                             is_done=False,
                             completed_at=None,
                             completion_description=None,
-                            debug_mode=debug_mode
+                            debug_mode=debug_mode,
+                            selected_date=selected_date
                         )
                 else:
                     st.info("🎉 No pending events! All tasks are completed.")
@@ -579,7 +590,8 @@ def render_calendar_events():
                             is_done=True,
                             completed_at=event_data['completed_at'],
                             completion_description=event_data.get('completion_description'),
-                            debug_mode=debug_mode
+                            debug_mode=debug_mode,
+                            selected_date=selected_date
                         )
                 else:
                     st.info("📝 No completed events yet.")

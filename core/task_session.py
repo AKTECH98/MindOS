@@ -2,6 +2,7 @@
 Core business logic for task session management.
 """
 from typing import Optional
+from datetime import date
 from data.repositories.task_session_repository import TaskSessionRepository
 from data.db import TaskSession
 
@@ -70,6 +71,22 @@ class TaskSessionCore:
         """
         try:
             return self.session_repo.get_total_time_spent(event_id)
+        finally:
+            self.session_repo.close()
+    
+    def get_time_spent_for_date(self, event_id: str, target_date: date) -> int:
+        """
+        Get time spent on an event for a specific date.
+        
+        Args:
+            event_id: Google Calendar event ID
+            target_date: Date to filter sessions by
+            
+        Returns:
+            Time in seconds spent on the target date
+        """
+        try:
+            return self.session_repo.get_time_spent_for_date(event_id, target_date)
         finally:
             self.session_repo.close()
     
