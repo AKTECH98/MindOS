@@ -1,8 +1,8 @@
 """
 Database models and initialization.
 """
-from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Boolean, DateTime, Integer, Text
+from datetime import datetime, date
+from sqlalchemy import create_engine, Column, String, Boolean, DateTime, Integer, Text, Date, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Optional
@@ -13,13 +13,20 @@ Base = declarative_base()
 
 
 class EventCompletion(Base):
-    """Model for tracking event completion status."""
+    """Model for tracking event completion status.
+    
+    Allows multiple completions per event_id (for recurring tasks completed on different days).
+    Each completion is unique per (event_id, DATE(completed_at)) combination.
+    The unique constraint is enforced via a database index on (event_id, DATE(completed_at)).
+    """
     __tablename__ = 'event_completions'
+    # Note: Unique constraint is enforced via database index, not SQLAlchemy constraint
+    # This allows us to use DATE(completed_at) in the uniqueness check
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    event_id = Column(String, unique=True, nullable=False, index=True)
+    event_id = Column(String, nullable=False, index=True)
     is_done = Column(Boolean, default=False, nullable=False)
-    completed_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True, index=True)  # Timestamp for when it was marked done (used for date-based uniqueness)
     completion_description = Column(Text, nullable=True)  # Description of what was accomplished
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -102,6 +109,58 @@ def init_db():
                     conn.execute(text("ALTER TABLE event_completions ADD COLUMN completion_description TEXT"))
                     conn.commit()
                 print("Migration completed: added completion_description column")
+            
+            # Migration: Remove completion_date column if it exists (we now use completed_at)
+            if 'completion_date' in columns:
+                print("Migrating event_completions table to remove completion_date column...")
+                with _engine.connect() as conn:
+                    # Drop the old unique constraint if it exists
+                    try:
+                        conn.execute(text("ALTER TABLE event_completions DROP CONSTRAINT IF EXISTS uq_event_completion_date"))
+                        conn.commit()
+                    except:
+                        pass
+                    
+                    # Drop completion_date column
+                    conn.execute(text("ALTER TABLE event_completions DROP COLUMN completion_date"))
+                    conn.commit()
+                    
+                    # Create unique index on (event_id, DATE(completed_at)) if it doesn't exist
+                    try:
+                        conn.execute(text("""
+                            CREATE UNIQUE INDEX IF NOT EXISTS uq_event_completion_date_idx 
+                            ON event_completions (event_id, DATE(completed_at))
+                            WHERE is_done = true AND completed_at IS NOT NULL
+                        """))
+                        conn.commit()
+                    except:
+                        pass
+                    
+                print("Migration completed: removed completion_date column, using completed_at instead")
+            
+            # Ensure unique index exists (for databases that never had completion_date)
+            if 'completion_date' not in columns:
+                try:
+                    with _engine.connect() as conn:
+                        # Check if index exists
+                        result = conn.execute(text("""
+                            SELECT indexname FROM pg_indexes 
+                            WHERE tablename = 'event_completions' 
+                            AND indexname = 'uq_event_completion_date_idx'
+                        """))
+                        if not result.fetchone():
+                            # Create unique index if it doesn't exist
+                            conn.execute(text("""
+                                CREATE UNIQUE INDEX uq_event_completion_date_idx 
+                                ON event_completions (event_id, DATE(completed_at))
+                                WHERE is_done = true AND completed_at IS NOT NULL
+                            """))
+                            conn.commit()
+                            print("Created unique index on (event_id, DATE(completed_at))")
+                except Exception as e:
+                    print(f"Note: Index creation check failed (may already exist): {e}")
+            
+            # Legacy migration code removed - we now use completed_at instead of completion_date
         except Exception as e:
             print(f"Migration check failed (this is OK if column already exists): {e}")
         
