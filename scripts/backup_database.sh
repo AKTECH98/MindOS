@@ -42,4 +42,3 @@ pg_dump -U "$DB_USER" -d "$DB_NAME" -Fd -f "$BACKUP_PATH"
 echo "✅ Database backup created successfully at: $BACKUP_PATH"
 echo "📋 To restore this backup, run:"
 echo "   ./scripts/load_database.sh $BACKUP_PATH"
-

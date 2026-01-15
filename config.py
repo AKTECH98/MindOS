@@ -2,8 +2,21 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-load_dotenv()
-APP_TITLE = "🧠 MindOS (Phase 1)"
+# Load environment-specific .env file
+env = os.getenv("ENVIRONMENT", "production")
+if env == "development":
+    # Try to load .env.development, fallback to .env if not found
+    env_file = Path(".env.development")
+    if env_file.exists():
+        load_dotenv(".env.development")
+    else:
+        load_dotenv()
+else:
+    load_dotenv()
+
+# Set app title based on environment
+APP_TITLE = "🧠 MindOS (Phase 1)" if env == "production" else "🧠 MindOS [DEV]"
+
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 if not DATABASE_URL:
     raise RuntimeError(
