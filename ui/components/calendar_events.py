@@ -470,7 +470,7 @@ def render_calendar_events():
         base_event_ids = list(base_event_ids_set)
         
         task_core = TaskStatusCore()
-        completion_status_raw = task_core.get_completion_status_batch(base_event_ids) if base_event_ids else {}
+        completion_status_raw = task_core.get_completion_status_batch(base_event_ids, selected_date) if base_event_ids else {}
         
         # Debug: Print raw completion status
         if debug_mode:
