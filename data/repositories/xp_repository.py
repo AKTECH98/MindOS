@@ -118,9 +118,10 @@ class XPRepository(BaseRepository[UserXP]):
             
             # Calculate level
             if total_xp < 0:
-                level = 1
-                current_level_xp = abs(total_xp) % self.XP_PER_LEVEL
-                xp_for_next_level = self.XP_PER_LEVEL - current_level_xp
+                # Below zero: always Level 0, no 100-point levels
+                level = 0
+                current_level_xp = abs(total_xp)  # Full amount below zero
+                xp_for_next_level = abs(total_xp)  # XP needed to reach 0
             else:
                 level = (total_xp // self.XP_PER_LEVEL) + 1
                 current_level_xp = total_xp % self.XP_PER_LEVEL

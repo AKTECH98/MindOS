@@ -74,9 +74,10 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
     
     # Use Streamlit's native container with better styling
     with st.container():
-        # Card styling - different style if done
-        card_style = "border-left: 4px solid #28a745;" if is_done else "border-left: 4px solid #1f77b4;"
+        # Card styling with theme colors
+        card_style = "border-left: 4px solid #06b6d4;" if is_done else "border-left: 4px solid #06b6d4;"
         opacity = "opacity: 0.7;" if is_done else ""
+        bg_color = "#475569" if not is_done else "#475569"
         
         st.markdown(
             f"""
@@ -85,9 +86,14 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                 {card_style}
                 padding: 1rem;
                 margin: 0.5rem 0;
-                background-color: var(--background-color);
-                border-radius: 4px;
+                background-color: {bg_color};
+                border: 1px solid #64748b;
+                border-radius: 8px;
                 {opacity}
+                background-image: 
+                    linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
+                background-size: 40px 40px;
             }}
             </style>
             """,
@@ -371,7 +377,12 @@ def render_calendar_events():
     if not is_authenticated:
         today = date.today()
         today_str = today.strftime("%B %d, %Y")
-        st.header(f"{today_str} - Tasks")
+        st.markdown(f"""
+        <h2 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+           color: #06b6d4; font-weight: 700; margin: 0;">
+            {today_str} - Tasks
+        </h2>
+        """, unsafe_allow_html=True)
         render_authentication_prompt()
         return
     
@@ -392,7 +403,12 @@ def render_calendar_events():
     # Format selected date for header
     selected_date_str = selected_date.strftime("%B %d, %Y")
     with col_header:
-        st.header(f"{selected_date_str} - Tasks")
+        st.markdown(f"""
+        <h2 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+           color: #06b6d4; font-weight: 700; margin: 0;">
+            {selected_date_str} - Tasks
+        </h2>
+        """, unsafe_allow_html=True)
     
     # Action buttons and debug toggle
     col1, col2, col3 = st.columns([1, 1, 4])
@@ -563,7 +579,12 @@ def render_calendar_events():
             col_pending, col_spacer, col_done = st.columns([1, 0.1, 1])
             
             with col_pending:
-                st.subheader(f"⏳ Pending Tasks ({len(pending_events)})")
+                st.markdown(f"""
+                <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                   color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+                    ⏳ Pending Tasks ({len(pending_events)})
+                </h3>
+                """, unsafe_allow_html=True)
                 if pending_events:
                     for event_data in pending_events:
                         render_event_card(
@@ -582,7 +603,12 @@ def render_calendar_events():
                 st.write("")
             
             with col_done:
-                st.subheader(f"✅ Done Tasks ({len(done_events)})")
+                st.markdown(f"""
+                <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                   color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+                    ✅ Done Tasks ({len(done_events)})
+                </h3>
+                """, unsafe_allow_html=True)
                 if done_events:
                     for event_data in done_events:
                         render_event_card(
