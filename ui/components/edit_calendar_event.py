@@ -20,7 +20,12 @@ def render_edit_event_form(calendar_service: CalendarService, event: Dict) -> Op
     Returns:
         Dictionary with updated event data if successful, None otherwise
     """
-    st.subheader("✏️ Edit Event")
+    st.markdown("""
+    <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+       color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+        ✏️ Edit Event
+    </h3>
+    """, unsafe_allow_html=True)
     
     # Extract current event data
     current_title = event.get('title', '')

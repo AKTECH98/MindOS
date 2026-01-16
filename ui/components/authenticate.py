@@ -41,8 +41,13 @@ def render_authentication_prompt():
     Render authentication prompt in Streamlit UI.
     Shows instructions and handles authentication flow.
     """
-    st.markdown("### 🔐 Authentication Required")
-    st.markdown("---")
+    st.markdown("""
+    <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+       color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+        🔐 Authentication Required
+    </h3>
+    <hr style="border: 1px solid #64748b; margin: 16px 0;">
+    """, unsafe_allow_html=True)
     
     # Check if credentials.json exists
     has_credentials = check_credentials_file()

@@ -19,7 +19,12 @@ def render_add_event_form(calendar_service: CalendarService) -> Optional[Dict]:
     Returns:
         Dictionary with event data if created successfully, None otherwise
     """
-    st.subheader("➕ Add New Event")
+    st.markdown("""
+    <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+       color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+        ➕ Add New Event
+    </h3>
+    """, unsafe_allow_html=True)
     
     with st.form("add_calendar_event_form", clear_on_submit=True):
         # Title
