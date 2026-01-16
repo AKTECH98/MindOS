@@ -130,7 +130,7 @@ def main():
     st.markdown("""
     <h1 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
        color: #06b6d4; font-weight: 700; margin-bottom: 24px;">
-        MindOS
+        MindOS Checking Flow 🧠
     </h1>
     """, unsafe_allow_html=True)
 
