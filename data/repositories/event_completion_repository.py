@@ -60,7 +60,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
             event_id: Google Calendar event ID
             description: Optional completion description
             completion_date: Date when task is being completed (defaults to today)
-            completed_at_datetime: Optional specific datetime for completed_at (defaults to midnight of completion_date or now)
+            completed_at_datetime: Optional specific datetime for completed_at (defaults to current time)
             
         Returns:
             Updated or created EventCompletion instance
@@ -68,12 +68,12 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
         if completion_date is None:
             completion_date = date.today()
         
-        # If completed_at_datetime is provided, use it; otherwise use midnight of completion_date
+        # If completed_at_datetime is provided, use it; otherwise use current time
         if completed_at_datetime is not None:
             completed_at = completed_at_datetime
         else:
-            # Set to midnight of the completion_date
-            completed_at = datetime.combine(completion_date, datetime.min.time())
+            # Use current time when task is completed
+            completed_at = datetime.now()
         
         local_now = datetime.now()
         
