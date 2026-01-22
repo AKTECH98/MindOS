@@ -2,7 +2,7 @@
 Core business logic for task session management.
 """
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 from data.repositories.task_session_repository import TaskSessionRepository
 from data.db import TaskSession
 
@@ -29,18 +29,19 @@ class TaskSessionCore:
         finally:
             self.session_repo.close()
     
-    def pause_session(self, event_id: str) -> bool:
+    def pause_session(self, event_id: str, end_time: Optional[datetime] = None) -> bool:
         """
         Pause the running session for an event.
         
         Args:
             event_id: Google Calendar event ID
+            end_time: Optional specific datetime to use as end_time (defaults to current time)
             
         Returns:
             True if successful, False otherwise
         """
         try:
-            return self.session_repo.pause_session(event_id)
+            return self.session_repo.pause_session(event_id, end_time)
         finally:
             self.session_repo.close()
     

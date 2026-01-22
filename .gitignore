@@ -201,3 +201,6 @@ backups/
 *.sql
 *.sql.gz
 *.dump
+
+# Scripts
+scripts/

@@ -50,10 +50,22 @@ class TaskStatusCore:
             completion_date = date.today()
         
         try:
+            # Check if there's a running session and pause it with the completion time
+            session_core = TaskSessionCore()
+            active_session = session_core.get_active_session(event_id)
+            
             was_already_done = self.completion_repo.is_done(event_id, completion_date)
             completion = self.completion_repo.mark_done(event_id, description.strip(), completion_date)
             if not completion:
                 return False
+            
+            # If there was a running session, pause it with the completion datetime
+            # This ensures the session end_time matches the completed_at timestamp
+            if active_session and completion and completion.completed_at:
+                try:
+                    session_core.pause_session(event_id, end_time=completion.completed_at)
+                except Exception as e:
+                    print(f"Warning: Failed to pause session when marking task as done: {e}")
             
             if not was_already_done:
                 try:
@@ -248,7 +260,8 @@ class TaskStatusCore:
                             completed_at_datetime = datetime.combine(completion_date, datetime.max.time()).replace(microsecond=0) - timedelta(seconds=1)
                             
                             was_already_done = self.completion_repo.is_done(base_id, completion_date)
-                            pause_success = session_core.pause_session(base_id)
+                            # Pause session using the completion datetime so end_time matches completed_at
+                            pause_success = session_core.pause_session(base_id, end_time=completed_at_datetime)
                             
                             if pause_success:
                                 completion = self.completion_repo.mark_done(
