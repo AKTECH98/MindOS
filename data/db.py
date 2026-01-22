@@ -28,8 +28,8 @@ class EventCompletion(Base):
     is_done = Column(Boolean, default=False, nullable=False)
     completed_at = Column(DateTime, nullable=True, index=True)  # Timestamp for when it was marked done (used for date-based uniqueness)
     completion_description = Column(Text, nullable=True)  # Description of what was accomplished
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
 
 class TaskSession(Base):
@@ -42,8 +42,8 @@ class TaskSession(Base):
     end_time = Column(DateTime, nullable=True)
     duration_seconds = Column(Integer, nullable=True)  # Duration in seconds
     status = Column(String, nullable=False)  # 'running', 'Paused', 'done'
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
 
 class UserXP(Base):
@@ -52,8 +52,8 @@ class UserXP(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     total_xp = Column(Integer, default=0, nullable=False)  # Cumulative XP points
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
 
 class XPTransaction(Base):
@@ -65,7 +65,7 @@ class XPTransaction(Base):
     event_id = Column(String, nullable=True)  # Optional: link to event that triggered this
     description = Column(String, nullable=True)  # Optional: description of the transaction
     total_xp_after = Column(Integer, nullable=False)  # Total XP after this transaction
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
 
 class DailyXPDeduction(Base):
@@ -77,7 +77,7 @@ class DailyXPDeduction(Base):
     pending_count = Column(Integer, default=0, nullable=False)
     deducted_count = Column(Integer, default=0, nullable=False)
     total_xp_deducted = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
 
 # Global engine and session factory
