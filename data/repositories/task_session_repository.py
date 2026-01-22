@@ -82,12 +82,13 @@ class TaskSessionRepository(BaseRepository[TaskSession]):
             print(f"Error starting session: {e}")
             return None
     
-    def pause_session(self, event_id: str) -> bool:
+    def pause_session(self, event_id: str, end_time: Optional[datetime] = None) -> bool:
         """
         Pause the running session for an event.
         
         Args:
             event_id: Google Calendar event ID
+            end_time: Optional specific datetime to use as end_time (defaults to current time)
             
         Returns:
             True if successful, False otherwise
@@ -95,13 +96,15 @@ class TaskSessionRepository(BaseRepository[TaskSession]):
         try:
             session = self.get_running_session(event_id)
             if session:
-                now = datetime.now()
+                # Use provided end_time or current time
+                pause_time = end_time if end_time is not None else datetime.now()
+                
                 if session.start_time:
-                    duration = int((now - session.start_time).total_seconds())
+                    duration = int((pause_time - session.start_time).total_seconds())
                     if session.duration_seconds:
                         duration += session.duration_seconds
                     session.duration_seconds = duration
-                session.end_time = now
+                session.end_time = pause_time
                 session.status = 'Paused'
                 return self.update(session) is not None
             return False
