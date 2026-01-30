@@ -1,13 +1,11 @@
-"""
-Authentication UI Component
-Handles Google Calendar authentication within Streamlit.
-"""
+"""Google Calendar authentication UI."""
 import streamlit as st
 from pathlib import Path
 import time
 
 from config import TOKEN_FILE
 from integrations.gcal_authentication import authenticate as run_google_auth
+from ui.theme import SMART_BLUE, SLATE_GREY, FONT_INTER
 
 
 def check_credentials_file() -> bool:
@@ -17,18 +15,10 @@ def check_credentials_file() -> bool:
 
 
 def run_authentication() -> bool:
-    """
-    Run the authentication function directly.
-    
-    Returns:
-        True if authentication was successful, False otherwise
-    """
+    """Run Google Calendar authentication. Returns True on success."""
     try:
-        # Call the authentication function directly
-        success = run_google_auth()
-        return success
+        return run_google_auth()
     except FileNotFoundError as e:
-        # Credentials.json not found
         st.error(str(e))
         return False
     except Exception as e:
@@ -37,19 +27,16 @@ def run_authentication() -> bool:
 
 
 def render_authentication_prompt():
-    """
-    Render authentication prompt in Streamlit UI.
-    Shows instructions and handles authentication flow.
-    """
-    st.markdown("""
-    <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-       color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+    """Render auth prompt and run authentication flow."""
+    st.markdown(
+        f"""
+    <h3 style="font-family: {FONT_INTER}; color: {SMART_BLUE}; font-weight: 600; margin-bottom: 16px;">
         🔐 Authentication Required
     </h3>
-    <hr style="border: 1px solid #64748b; margin: 16px 0;">
-    """, unsafe_allow_html=True)
-    
-    # Check if credentials.json exists
+    <hr style="border: 1px solid {SLATE_GREY}; margin: 16px 0;">
+    """,
+        unsafe_allow_html=True,
+    )
     has_credentials = check_credentials_file()
     
     if not has_credentials:
@@ -93,16 +80,8 @@ def render_authentication_prompt():
                - Place it in the `secrets/` folder
             """)
         return False
-    
-    st.info("""
-    **Starting authentication...** 
-    
-    A browser window will open for you to sign in with your Google account.
-    """)
-    
-    # Automatically start authentication
+    st.info("**Starting authentication...** A browser window will open for you to sign in with your Google account.")
     with st.spinner("Starting authentication process..."):
-        # Show instructions
         st.info("""
         **Authentication Process:**
         1. A browser window will open automatically
@@ -111,29 +90,22 @@ def render_authentication_prompt():
         4. You'll be redirected back automatically
         5. The page will refresh automatically when done
         """)
-        
-        # Run authentication automatically
         success = run_authentication()
         
         if success:
             st.success("✅ Authentication successful! Refreshing...")
             st.balloons()
-            # Clear any cached calendar service - import here to avoid circular import
             try:
                 from ui.components.calendar_events import get_calendar_service
                 get_calendar_service.clear()
-            except:
+            except Exception:
                 pass
-            # Clear calendar events cache
             if 'calendar_events' in st.session_state:
                 del st.session_state['calendar_events']
-            # Small delay to show success message
             time.sleep(1)
-            # Rerun to refresh the page
             st.rerun()
         else:
             st.error("❌ Authentication failed. Please check the error messages above.")
-            # Show retry button
             if st.button("🔄 Retry Authentication", use_container_width=True, type="primary"):
                 st.rerun()
     

@@ -1,6 +1,4 @@
-"""
-Repository for event completion operations.
-"""
+"""Event completion data access."""
 from datetime import datetime, date
 from typing import Optional, List, Dict, Tuple
 from sqlalchemy import func
@@ -15,21 +13,10 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
         super().__init__(EventCompletion)
     
     def get_by_event_id(self, event_id: str, completion_date: Optional[date] = None) -> Optional[EventCompletion]:
-        """
-        Get completion record by event ID and optionally by date.
-        
-        Args:
-            event_id: Google Calendar event ID
-            completion_date: Optional date to filter by (defaults to today)
-            
-        Returns:
-            EventCompletion instance or None
-        """
+        """Return completion record for event_id on completion_date (default today)."""
         try:
             if completion_date is None:
                 completion_date = date.today()
-            
-            # Use DATE(completed_at) to match by date
             return self.db.query(EventCompletion).filter(
                 EventCompletion.event_id == str(event_id),
                 func.date(EventCompletion.completed_at) == completion_date,
@@ -40,16 +27,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
             return None
     
     def get_by_event_id_and_date(self, event_id: str, completion_date: date) -> Optional[EventCompletion]:
-        """
-        Get completion record by event ID and completion date.
-        
-        Args:
-            event_id: Google Calendar event ID
-            completion_date: Date when task was completed
-            
-        Returns:
-            EventCompletion instance or None
-        """
+        """Return completion record for event_id on completion_date."""
         return self.get_by_event_id(event_id, completion_date)
     
     def mark_done(self, event_id: str, description: Optional[str] = None, completion_date: Optional[date] = None, completed_at_datetime: Optional[datetime] = None) -> Optional[EventCompletion]:
@@ -67,8 +45,6 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
         """
         if completion_date is None:
             completion_date = date.today()
-        
-        # If completed_at_datetime is provided, use it; otherwise use current time
         if completed_at_datetime is not None:
             completed_at = completed_at_datetime
         else:
@@ -86,10 +62,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
             completion.completion_description = description
             completion.updated_at = local_now
             return self.update(completion)
-        else:
-            # Create new completion - use the specified completed_at datetime
-            # The date will be extracted from completed_at in queries using DATE(completed_at)
-            return self.create(
+        return self.create(
                 event_id=str(event_id),
                 is_done=True,
                 completed_at=completed_at,
@@ -118,13 +91,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
             completion.completed_at = None
             completion.updated_at = local_now
             return self.update(completion)
-        else:
-            # Create undone record (though this is unusual)
-            return self.create(
-                event_id=str(event_id),
-                completion_date=completion_date,
-                is_done=False
-            )
+        return None
     
     def is_done(self, event_id: str, completion_date: Optional[date] = None) -> bool:
         """
@@ -144,16 +111,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
         return completion.is_done if completion else False
     
     def get_completion_timestamp(self, event_id: str, completion_date: Optional[date] = None) -> Optional[datetime]:
-        """
-        Get completion timestamp for a specific date.
-        
-        Args:
-            event_id: Google Calendar event ID
-            completion_date: Date to check (defaults to today)
-            
-        Returns:
-            Completion timestamp or None
-        """
+        """Return completion timestamp for event on completion_date (default today)."""
         if completion_date is None:
             completion_date = date.today()
         
@@ -182,12 +140,7 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
         return None
     
     def get_all_completed_events(self) -> List[str]:
-        """
-        Get list of all completed event IDs.
-        
-        Returns:
-            List of event IDs
-        """
+        """Return list of all completed event IDs."""
         try:
             completions = self.db.query(EventCompletion).filter(
                 EventCompletion.is_done == True
@@ -227,8 +180,6 @@ class EventCompletionRepository(BaseRepository[EventCompletion]):
                     completion.completed_at,
                     completion.completion_description
                 )
-            
-            # Add False for events not in database
             for event_id in event_ids_str:
                 if event_id not in result:
                     result[event_id] = (False, None, None)
