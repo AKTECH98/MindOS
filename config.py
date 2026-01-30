@@ -32,9 +32,6 @@ def mask_database_url(url: str) -> str:
         pass
     return url
 
-print(f"🔧 APP_ENV: {APP_ENV}")
-print(f"🗄️  Database: {mask_database_url(DATABASE_URL)}")
-
 BASE_DIR = Path(__file__).parent
 TOKEN_FILE = BASE_DIR / "secrets" / "token.json"
 CALENDAR_SCOPE = ["https://www.googleapis.com/auth/calendar"]

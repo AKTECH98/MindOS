@@ -104,26 +104,16 @@ class DiscordService:
         
         @self.client.event
         async def on_message(message: discord.Message):
-            # Debug: Log all messages received
-            print(f"[DEBUG] Received message from {message.author} in {message.channel}: {message.content[:50]}...")
-            
-            # Ignore messages from the bot itself
             if message.author == self.client.user:
-                print(f"[DEBUG] Ignoring message from bot itself")
                 return
-            
-            # Call message handler if provided
+
             if self.message_handler:
-                print(f"[DEBUG] Calling message handler for message: {message.content[:50]}...")
                 try:
                     await self.message_handler(message)
-                    print(f"[DEBUG] Message handler completed")
                 except Exception as e:
                     print(f"Error in message handler: {e}")
                     import traceback
                     traceback.print_exc()
-            else:
-                print(f"[DEBUG] No message handler registered")
         
         # Start the bot
         await self.client.start(self.bot_token)

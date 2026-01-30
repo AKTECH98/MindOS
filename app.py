@@ -18,8 +18,8 @@ def initialize_app():
     """Initialize database and app resources."""
     try:
         init_db()
-    except Exception as e:
-        print(f"Database initialization warning: {e}")
+    except Exception:
+        pass
 
 
 def check_and_run_daily_deduction():
@@ -28,15 +28,9 @@ def check_and_run_daily_deduction():
         task_core = TaskStatusCore()
         if not task_core.should_run_daily_deduction():
             return
-        result = task_core.deduct_xp_for_pending_tasks_from_yesterday()
-        if result.get("success") and result.get("deducted_count", 0) > 0:
-            print(f"✅ Daily XP deduction completed: {result['message']}")
-        elif result.get("success"):
-            print(f"ℹ️ Daily XP deduction: {result.get('message', 'No pending tasks')}")
-        else:
-            print(f"⚠️ Daily XP deduction failed: {result.get('message', 'Unknown error')}")
-    except Exception as e:
-        print(f"Error running daily XP deduction: {e}")
+        task_core.deduct_xp_for_pending_tasks_from_yesterday()
+    except Exception:
+        pass
 
 
 def _render_home_hero():

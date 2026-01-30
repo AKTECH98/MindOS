@@ -22,6 +22,8 @@ GLOBAL_CSS = """
     --slate-grey: #64748b;
     --slate-bg: #475569;
     --slate-border: #64748b;
+    --input-bg: #334155;
+    --placeholder-color: #b8c5d6;
 }
 body, .stApp, [data-testid="stAppViewContainer"],
 main, main .block-container, main section,
@@ -81,15 +83,17 @@ h1, h2, h3, h4, h5, h6 {
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea,
 .stSelectbox > div > div > select {
-    background-color: var(--slate-bg);
+    background-color: var(--input-bg) !important;
     border: 1px solid var(--slate-border);
     border-radius: 8px;
     color: #f1f5f9;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.stTextInput > div > div > input::placeholder {
-    color: #94a3b8;
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: var(--placeholder-color) !important;
+    opacity: 1;
 }
 
 .stDateInput > div > div > input {
@@ -129,6 +133,15 @@ body:has(#page-is-home) main [data-testid="stVerticalBlock"]:not(.task-panel-out
 body:has(#page-is-home) main [data-testid="stHorizontalBlock"],
 body:has(#page-is-home) main [data-testid="stHorizontalBlock"] > div {
     border: none !important;
+}
+body:has(#page-is-home) [data-testid="stHorizontalBlock"] > div:first-child .stTextInput {
+    max-width: 50% !important;
+    width: 50% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+body:has(#page-is-home) [data-testid="stHorizontalBlock"] > div:first-child .stTextInput input {
+    border-radius: 16px !important;
 }
 </style>
 """
