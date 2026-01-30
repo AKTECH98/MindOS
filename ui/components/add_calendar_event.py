@@ -1,56 +1,35 @@
-"""
-Add Calendar Event Component
-Form to create new events in Google Calendar.
-"""
+"""Form to add new Google Calendar events."""
 import streamlit as st
 from datetime import datetime, date, time
 from typing import Optional, Dict
 
 from integrations.gcalendar import CalendarService
+from ui.theme import SMART_BLUE, FONT_INTER
 
 
 def render_add_event_form(calendar_service: CalendarService) -> Optional[Dict]:
-    """
-    Render a form to add a new calendar event.
-    
-    Args:
-        calendar_service: CalendarService instance to create events
-        
-    Returns:
-        Dictionary with event data if created successfully, None otherwise
-    """
-    st.markdown("""
-    <h3 style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-       color: #06b6d4; font-weight: 600; margin-bottom: 16px;">
+    """Render form to add a new calendar event."""
+    st.markdown(
+        f"""
+    <h3 style="font-family: {FONT_INTER}; color: {SMART_BLUE}; font-weight: 600; margin-bottom: 16px;">
         ➕ Add New Event
     </h3>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
     
     with st.form("add_calendar_event_form", clear_on_submit=True):
-        # Title
         title = st.text_input("Event Title *", placeholder="Enter event title")
-        
-        # Date
         event_date = st.date_input("Date *", value=date.today())
-        
-        # Time columns
         col1, col2 = st.columns(2)
         with col1:
             start_time = st.time_input("Start Time *", value=time(9, 0))
         with col2:
             end_time = st.time_input("End Time *", value=time(10, 0))
-        
-        # Recurrence option
         repeat_daily = st.checkbox("Repeat daily", value=False)
-        
-        # Description (optional)
         description = st.text_area("Description (optional)", placeholder="Enter event description")
-        
-        # Submit button
         submitted = st.form_submit_button("Create Event", use_container_width=True)
-        
         if submitted:
-            # Validate inputs
             if not title:
                 st.error("❌ Please enter an event title")
                 return None
@@ -60,11 +39,8 @@ def render_add_event_form(calendar_service: CalendarService) -> Optional[Dict]:
                 return None
             
             try:
-                # Combine date and time
                 start_datetime = datetime.combine(event_date, start_time)
                 end_datetime = datetime.combine(event_date, end_time)
-                
-                # Create event via calendar service
                 created_event = calendar_service.create_event(
                     title=title,
                     start_datetime=start_datetime,
@@ -75,7 +51,6 @@ def render_add_event_form(calendar_service: CalendarService) -> Optional[Dict]:
                 
                 if created_event:
                     st.success(f"✅ Event '{title}' created successfully!")
-                    # Clear cache to refresh events list
                     if 'calendar_events' in st.session_state:
                         del st.session_state['calendar_events']
                     return created_event

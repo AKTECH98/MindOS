@@ -1,21 +1,16 @@
-"""
-Stats Panel Component
-Displays productivity statistics in a video game styled panel.
-"""
+"""Stats panel: total tasks, active days, average per day."""
 import streamlit as st
 from datetime import date, timedelta
 
 from ui.components.contribution_chart import get_completions_by_date
+from ui.theme import SMART_BLUE
 
 
 _STATS_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
 .stats-panel {
-    background: #475569;
-    border: 1px solid #64748b;
+    background: var(--slate-bg);
+    border: 1px solid var(--slate-border);
     border-radius: 8px;
     padding: 21px;
     position: relative;
@@ -27,12 +22,12 @@ _STATS_CSS = """
 }
 
 .stats-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: inherit;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #06b6d4;
+    color: var(--smart-blue);
     margin-bottom: 20px;
     text-align: center;
     position: relative;
@@ -54,12 +49,12 @@ _STATS_CSS = """
 }
 
 .stat-label {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: inherit;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #06b6d4;
+    color: var(--smart-blue);
     text-align: center;
 }
 </style>
@@ -72,15 +67,15 @@ def _render_stats_html(total_tasks: int, active_days: int, avg_per_day: float) -
     <div class="stats-panel" style="margin-top: 0; margin-bottom: 0;">
         <div class="stats-title">Stats</div>
         <div class="stat-item">
-            <div class="stat-value" style="color: #06b6d4;">{total_tasks}</div>
+            <div class="stat-value" style="color: {SMART_BLUE};">{total_tasks}</div>
             <div class="stat-label">Tasks</div>
         </div>
         <div class="stat-item">
-            <div class="stat-value" style="color: #06b6d4;">{active_days}</div>
+            <div class="stat-value" style="color: {SMART_BLUE};">{active_days}</div>
             <div class="stat-label">Active Days</div>
         </div>
         <div class="stat-item" style="margin-bottom: 0;">
-            <div class="stat-value" style="color: #06b6d4;">{avg_per_day:.1f}</div>
+            <div class="stat-value" style="color: {SMART_BLUE};">{avg_per_day:.1f}</div>
             <div class="stat-label">Avg/Day</div>
         </div>
     </div>
@@ -98,26 +93,17 @@ def render_stats_panel():
     try:
         # Calculate date range (last 371 days to show ~1 year)
         today = date.today()
-        start_date = today - timedelta(days=370)  # 371 days total (0-370 inclusive)
-        
-        # Get completion data
+        start_date = today - timedelta(days=370)
         completions_by_date = get_completions_by_date(start_date, today)
-        
-        # Calculate stats
         total_tasks = sum(completions_by_date.values())
         active_days = len(completions_by_date)
-        
-        # Calculate average per day (total days in range)
         total_days = (today - start_date).days + 1
         avg_per_day = total_tasks / total_days if total_days > 0 else 0
-        
-        # Render stats panel
         stats_html = _render_stats_html(total_tasks, active_days, avg_per_day)
         st.markdown(stats_html, unsafe_allow_html=True)
         
     except Exception as e:
         st.error(f"Error loading stats: {e}")
-        # Show default values on error
         default_html = _render_stats_html(0, 0, 0.0)
         st.markdown(default_html, unsafe_allow_html=True)
 

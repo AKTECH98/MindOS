@@ -1,6 +1,4 @@
-"""
-Core business logic for task status and XP management.
-"""
+"""Core logic for task status and XP management."""
 from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict
 from dateutil import tz
@@ -12,12 +10,13 @@ from core.task_session import TaskSessionCore
 
 
 def extract_base_event_id(event_id: str) -> str:
-    """Extract base event_id by removing timestamp suffix if present."""
-    if '_' in str(event_id) and str(event_id).count('_') >= 1:
-        parts = str(event_id).rsplit('_', 1)
+    """Return base event_id (strip timestamp suffix like _20250130T120000Z if present)."""
+    s = str(event_id)
+    if '_' in s:
+        parts = s.rsplit('_', 1)
         if len(parts) == 2 and 'T' in parts[1] and parts[1].endswith('Z'):
             return parts[0]
-    return str(event_id)
+    return s
 
 
 def _get_date_from_datetime(dt) -> Optional[date]:
@@ -32,8 +31,7 @@ def _get_date_from_datetime(dt) -> Optional[date]:
 
 
 class TaskStatusCore:
-    """Core business logic for task completion and XP management."""
-    
+    """Task completion and XP management."""
     XP_PER_TASK = 5
     
     def __init__(self):
@@ -42,7 +40,7 @@ class TaskStatusCore:
         self.deduction_repo = DailyXPDeductionRepository()
     
     def mark_event_done(self, event_id: str, description: str, completion_date: Optional[date] = None) -> bool:
-        """Mark event as done and award XP. XP only awarded on first completion per date."""
+        """Mark event done and award XP (once per date)."""
         if not description or not description.strip():
             raise ValueError("Description is required when marking a task as done")
         
@@ -50,17 +48,12 @@ class TaskStatusCore:
             completion_date = date.today()
         
         try:
-            # Check if there's a running session and pause it with the completion time
             session_core = TaskSessionCore()
             active_session = session_core.get_active_session(event_id)
-            
             was_already_done = self.completion_repo.is_done(event_id, completion_date)
             completion = self.completion_repo.mark_done(event_id, description.strip(), completion_date)
             if not completion:
                 return False
-            
-            # If there was a running session, pause it with the completion datetime
-            # This ensures the session end_time matches the completed_at timestamp
             if active_session and completion and completion.completed_at:
                 try:
                     session_core.pause_session(event_id, end_time=completion.completed_at)
@@ -225,17 +218,12 @@ class TaskStatusCore:
                     
                     for base_id in base_event_ids:
                         is_done, completed_at, _ = completion_status.get(base_id, (False, None, None))
-                        
-                        should_deduct = False
-                        if not is_done:
-                            should_deduct = True
-                        elif completed_at:
-                            completed_date = _get_date_from_datetime(completed_at)
-                            if completed_date and completed_date != check_date:
-                                should_deduct = True
-                        elif is_done:
-                            should_deduct = True
-                        
+                        completed_date = _get_date_from_datetime(completed_at) if completed_at else None
+                        should_deduct = (
+                            not is_done
+                            or (completed_date is not None and completed_date != check_date)
+                            or (is_done and completed_at is None)
+                        )
                         if should_deduct:
                             active_session = session_core.get_active_session(base_id)
                             if active_session is not None:
@@ -260,7 +248,6 @@ class TaskStatusCore:
                             completed_at_datetime = datetime.combine(completion_date, datetime.max.time()).replace(microsecond=0) - timedelta(seconds=1)
                             
                             was_already_done = self.completion_repo.is_done(base_id, completion_date)
-                            # Pause session using the completion datetime so end_time matches completed_at
                             pause_success = session_core.pause_session(base_id, end_time=completed_at_datetime)
                             
                             if pause_success:
@@ -366,7 +353,7 @@ class TaskStatusCore:
             self.deduction_repo.close()
     
     def should_run_daily_deduction(self) -> bool:
-        """Check if daily deduction should run (hasn't run today yet)."""
+        """Return True if daily deduction has not run today."""
         try:
             return not self.deduction_repo.has_run_today()
         finally:
