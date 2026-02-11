@@ -1,5 +1,5 @@
 """Core logic for task status and XP management."""
-from datetime import datetime, timedelta, date, time
+from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict
 from dateutil import tz
 
@@ -40,16 +40,14 @@ class TaskStatusCore:
         self.deduction_repo = DailyXPDeductionRepository()
     
     def mark_event_done(self, event_id: str, description: str, completion_date: Optional[date] = None) -> bool:
-        """Mark event done and award XP (once per date)."""
+        """Mark event done for today and award XP. Only today is allowed."""
         if not description or not description.strip():
             raise ValueError("Description is required when marking a task as done")
         
         if completion_date is None:
             completion_date = date.today()
-        
-        completed_at_datetime = None
-        if completion_date is not None and completion_date != date.today():
-            completed_at_datetime = datetime.combine(completion_date, time(23, 59, 59))
+        if completion_date != date.today():
+            return False
         
         try:
             session_core = TaskSessionCore()
@@ -57,7 +55,7 @@ class TaskStatusCore:
             was_already_done = self.completion_repo.is_done(event_id, completion_date)
             completion = self.completion_repo.mark_done(
                 event_id, description.strip(), completion_date,
-                completed_at_datetime=completed_at_datetime
+                completed_at_datetime=None
             )
             if not completion:
                 return False
@@ -69,13 +67,11 @@ class TaskStatusCore:
             
             if not was_already_done:
                 try:
-                    is_old_task = completion_date != date.today()
-                    points = (2 * self.XP_PER_TASK) if is_old_task else self.XP_PER_TASK  # +10 for old (refund deduction + completion), +5 for today
                     self.xp_repo.add_xp(
-                        points,
+                        self.XP_PER_TASK,
                         event_id=str(event_id),
                         description=f"Task completed: {event_id}",
-                        transaction_created_at=None if is_old_task else completion.completed_at,  # old task: record at current time
+                        transaction_created_at=completion.completed_at,
                     )
                 except Exception as e:
                     print(f"Warning: Failed to award XP for task completion: {e}")
@@ -89,9 +85,11 @@ class TaskStatusCore:
             self.xp_repo.close()
     
     def mark_event_undone(self, event_id: str, completion_date: Optional[date] = None) -> bool:
-        """Mark event as undone and deduct XP."""
+        """Mark event as undone for today and deduct XP. Only today is allowed."""
         if completion_date is None:
             completion_date = date.today()
+        if completion_date != date.today():
+            return False
         
         try:
             completion = self.completion_repo.mark_undone(event_id, completion_date)
@@ -250,6 +248,13 @@ class TaskStatusCore:
                             else:
                                 pending_base_ids.append(base_id)
                     
+                    # Auto-complete tasks on which time was spent that day (even if timer was already paused)
+                    time_spent_tasks_to_complete = [
+                        b for b in pending_base_ids
+                        if session_core.get_time_spent_for_date(b, check_date) > 0
+                    ]
+                    pending_base_ids = [b for b in pending_base_ids if b not in set(time_spent_tasks_to_complete)]
+                    
                     running_completed_count = 0
                     running_xp_awarded = 0
                     for base_id in running_tasks_to_complete:
@@ -284,6 +289,36 @@ class TaskStatusCore:
                             print(f"Error handling running task {base_id} on {check_date}: {e}")
                             pending_base_ids.append(base_id)
                     
+                    # Auto-complete tasks that had time spent that day (timer was used but task not marked done)
+                    time_spent_completed_count = 0
+                    time_spent_xp_awarded = 0
+                    completed_at_datetime_eod = datetime.combine(check_date, datetime.max.time()).replace(microsecond=0) - timedelta(seconds=1)
+                    for base_id in time_spent_tasks_to_complete:
+                        try:
+                            was_already_done = self.completion_repo.is_done(base_id, check_date)
+                            completion = self.completion_repo.mark_done(
+                                base_id,
+                                description="Auto-completed (time spent on task)",
+                                completion_date=check_date,
+                                completed_at_datetime=completed_at_datetime_eod,
+                            )
+                            if completion and not was_already_done:
+                                try:
+                                    self.xp_repo.add_xp(
+                                        self.XP_PER_TASK,
+                                        event_id=str(base_id),
+                                        description=f"Task completed: {base_id}",
+                                        transaction_created_at=completed_at_datetime_eod,
+                                    )
+                                    time_spent_xp_awarded += self.XP_PER_TASK
+                                except Exception as e:
+                                    print(f"Warning: Failed to award XP for time-spent auto-complete: {e}")
+                            if completion:
+                                time_spent_completed_count += 1
+                        except Exception as e:
+                            print(f"Error auto-completing time-spent task {base_id} on {check_date}: {e}")
+                            pending_base_ids.append(base_id)
+                    
                     session_core.session_repo.close()
                     
                     day_deducted_count = 0
@@ -302,16 +337,18 @@ class TaskStatusCore:
                         except Exception as e:
                             print(f"Error deducting XP for event {base_id} on {check_date}: {e}")
                     
-                    total_pending_count += len(pending_base_ids) + running_completed_count
+                    total_pending_count += len(pending_base_ids) + running_completed_count + time_spent_completed_count
                     total_deducted_count += day_deducted_count
                     total_xp_deducted += day_xp_deducted
-                    total_running_xp_awarded += running_xp_awarded
+                    total_running_xp_awarded += running_xp_awarded + time_spent_xp_awarded
                     
                     days_processed.append({
                         'date': check_date,
                         'pending': len(pending_base_ids),
                         'running_stopped': running_completed_count,
                         'running_xp_awarded': running_xp_awarded,
+                        'time_spent_auto_completed': time_spent_completed_count,
+                        'time_spent_xp_awarded': time_spent_xp_awarded,
                         'deducted': day_deducted_count,
                         'xp': day_xp_deducted
                     })
@@ -328,7 +365,12 @@ class TaskStatusCore:
             
             running_info = ""
             if total_running_xp_awarded > 0:
-                running_info = f" Stopped {sum(d.get('running_stopped', 0) for d in days_processed)} running task(s) and awarded {total_running_xp_awarded} XP."
+                running_stopped = sum(d.get('running_stopped', 0) for d in days_processed)
+                time_spent_done = sum(d.get('time_spent_auto_completed', 0) for d in days_processed)
+                if time_spent_done > 0:
+                    running_info = f" Auto-completed {running_stopped} running + {time_spent_done} time-spent task(s), awarded {total_running_xp_awarded} XP."
+                else:
+                    running_info = f" Stopped {running_stopped} running task(s) and awarded {total_running_xp_awarded} XP."
             
             if total_deducted_count == 0:
                 message = f"No pending tasks from {'yesterday' if days_since == 1 else f'the last {days_since} days'}.{running_info}"
@@ -341,6 +383,7 @@ class TaskStatusCore:
                 "deducted_count": total_deducted_count,
                 "total_xp_deducted": total_xp_deducted,
                 "running_stopped_count": sum(d.get('running_stopped', 0) for d in days_processed),
+                "time_spent_auto_completed_count": sum(d.get('time_spent_auto_completed', 0) for d in days_processed),
                 "running_xp_awarded": total_running_xp_awarded,
                 "days_processed": days_since,
                 "days_breakdown": days_processed,

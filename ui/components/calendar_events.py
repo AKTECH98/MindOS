@@ -90,45 +90,50 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                 return f"{hours}:{minutes:02d}:{secs:02d}"
             return f"{minutes}:{secs:02d}"
         showing_description = st.session_state.get(f'show_description_input_{unique_event_key}', False)
-        if is_done:
+        if not viewing_today:
+            col_title, = st.columns([1])
+            col_check = None
+            col_edit = None
+        elif is_done:
             col_check, col_title = st.columns([1, 11])
             col_edit = None
         else:
             col_check, col_title, col_edit = st.columns([1, 8, 1])
         
-        with col_check:
-            checkbox_key = f"done_{unique_event_key}"
-            if not showing_description:
-                new_done_state = st.checkbox(
-                    "Mark as done",
-                    value=is_done,
-                    key=checkbox_key,
-                    label_visibility="collapsed",
-                    disabled=is_session_running
-                )
-                if new_done_state != is_done:
-                    base_event_id = extract_base_event_id(event_id)
-                    if new_done_state:
-                        # Show description input when marking as done
-                        st.session_state[f'show_description_input_{unique_event_key}'] = True
-                        st.rerun()
-                    else:
-                        task_core = TaskStatusCore()
-                        task_core.mark_event_undone(base_event_id, completion_date=selected_date)
-                        if 'calendar_events' in st.session_state:
-                            del st.session_state['calendar_events']
-                        if hasattr(st.session_state, 'xp_info'):
-                            del st.session_state['xp_info']
-                        st.rerun()
-            else:
-                st.checkbox(
-                    "Mark as done",
-                    value=True,
-                    key=f"disabled_{checkbox_key}",
-                    label_visibility="collapsed",
-                    disabled=True
-                )
-        if st.session_state.get(f'show_description_input_{unique_event_key}', False) and not is_done:
+        if col_check is not None:
+            with col_check:
+                checkbox_key = f"done_{unique_event_key}"
+                can_toggle_done = not is_session_running
+                if not showing_description:
+                    new_done_state = st.checkbox(
+                        "Mark as done",
+                        value=is_done,
+                        key=checkbox_key,
+                        label_visibility="collapsed",
+                        disabled=not can_toggle_done
+                    )
+                    if can_toggle_done and new_done_state != is_done:
+                        base_event_id = extract_base_event_id(event_id)
+                        if new_done_state:
+                            st.session_state[f'show_description_input_{unique_event_key}'] = True
+                            st.rerun()
+                        else:
+                            task_core = TaskStatusCore()
+                            task_core.mark_event_undone(base_event_id, completion_date=selected_date)
+                            if 'calendar_events' in st.session_state:
+                                del st.session_state['calendar_events']
+                            if hasattr(st.session_state, 'xp_info'):
+                                del st.session_state['xp_info']
+                            st.rerun()
+                else:
+                    st.checkbox(
+                        "Mark as done",
+                        value=True,
+                        key=f"disabled_{checkbox_key}",
+                        label_visibility="collapsed",
+                        disabled=True
+                    )
+        if viewing_today and st.session_state.get(f'show_description_input_{unique_event_key}', False) and not is_done:
             st.info("📝 **Required:** Please describe what you accomplished:")
             description = st.text_area(
                 "Completion Description *",
@@ -179,13 +184,13 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                 st.markdown(f"### {title}")
             if not is_done and is_session_running:
                 st.markdown(f"⏱️ **Running:** {format_duration(current_duration)}")
-        if not is_done and not showing_description and col_edit is not None:
+        if viewing_today and not is_done and not showing_description and col_edit is not None:
             with col_edit:
                 edit_key = f"edit_{unique_event_key}"
                 if st.button("✏️", key=edit_key, help="Edit event"):
                     st.session_state[f'edit_event_{unique_event_key}'] = True
                     st.rerun()
-        if not is_done and not showing_description:
+        if viewing_today and not is_done and not showing_description:
             col_start, col_pause = st.columns([1, 1])
             
             with col_start:
