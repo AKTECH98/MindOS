@@ -17,7 +17,7 @@ def render_add_event_form(calendar_service: CalendarService) -> Optional[Dict]:
     """,
         unsafe_allow_html=True,
     )
-    
+
     with st.form("add_calendar_event_form", clear_on_submit=True):
         title = st.text_input("Event Title *", placeholder="Enter event title")
         event_date = st.date_input("Date *", value=date.today())

@@ -42,7 +42,5 @@ def render_left_sidebar():
             """,
             unsafe_allow_html=True
         )
-        
     except Exception as e:
         st.error(f"Error loading sidebar information: {e}")
-

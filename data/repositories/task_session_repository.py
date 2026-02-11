@@ -158,15 +158,15 @@ class TaskSessionRepository(BaseRepository[TaskSession]):
             Time in seconds spent on the target date
         """
         try:
-            # Calculate start and end of target date (local time)
+            # Day range: [start_of_day, start_of_next_day) so we only include the target date
             start_of_day = datetime.combine(target_date, datetime.min.time())
-            end_of_day = datetime.combine(target_date, datetime.max.time()) + timedelta(days=1)
+            start_of_next_day = datetime.combine(target_date, datetime.min.time()) + timedelta(days=1)
             
             # Get all sessions for this event that started on the target date
             sessions = self.db.query(TaskSession).filter(
                 TaskSession.event_id == event_id,
                 TaskSession.start_time >= start_of_day,
-                TaskSession.start_time < end_of_day
+                TaskSession.start_time < start_of_next_day
             ).all()
             
             total = 0

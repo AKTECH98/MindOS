@@ -87,11 +87,9 @@ def render_stats_panel():
     Render a stats panel showing productivity statistics.
     Displays total tasks, active days, and average per day.
     """
-    # Inject CSS
     st.markdown(_STATS_CSS, unsafe_allow_html=True)
-    
+
     try:
-        # Calculate date range (last 371 days to show ~1 year)
         today = date.today()
         start_date = today - timedelta(days=370)
         completions_by_date = get_completions_by_date(start_date, today)
@@ -101,9 +99,7 @@ def render_stats_panel():
         avg_per_day = total_tasks / total_days if total_days > 0 else 0
         stats_html = _render_stats_html(total_tasks, active_days, avg_per_day)
         st.markdown(stats_html, unsafe_allow_html=True)
-        
     except Exception as e:
         st.error(f"Error loading stats: {e}")
         default_html = _render_stats_html(0, 0, 0.0)
         st.markdown(default_html, unsafe_allow_html=True)
-

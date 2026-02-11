@@ -117,7 +117,6 @@ _TASK_PANEL_CSS = f"""
     padding: 0 0 0.75rem 0;
     font-size: 15px;
 }}
-
 .task-list-item-done {{ opacity: 0.8; }}
 .task-list-item-done .task-xp-gained {{ margin-left: 0.5rem; font-size: 15px; font-weight: 600; }}
 .task-list-item-time {{ font-size: 15px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; line-height: 1.4; text-align: center; }}
@@ -132,7 +131,7 @@ _TASK_PANEL_CSS = f"""
 }}
 .task-panel-outer .stButton > button,
 .task-panel-outer .stButton > button * {{
-    font-size: 14px !important;    
+    font-size: 14px !important;
 }}
 .task-panel-outer button.btn-start {{
     background-color: {BTN_START_GREEN} !important;
@@ -210,7 +209,10 @@ def render_task_list_panel():
             is_authenticated = False
 
         if not is_authenticated:
-            st.markdown(f'<div class="task-list-panel"><div class="task-list-title">Tasks</div><p style="color: {SLATE_GREY}; font-size: 12px;">Connect calendar to see tasks.</p></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="task-list-panel"><div class="task-list-title">Tasks</div><p style="color: {SLATE_GREY}; font-size: 12px;">Connect calendar to see tasks.</p></div>',
+                unsafe_allow_html=True
+            )
             return
 
         selected_date = date.today()
@@ -250,7 +252,7 @@ def render_task_list_panel():
                 completion_status[event_id_str] = (status_data[0], status_data[1], status_data[2] if len(status_data) > 2 else None)
 
             if not events:
-                st.markdown(f'<p style="color: {SLATE_GREY}; font-size: 12px;">No tasks for this day.</p>', unsafe_allow_html=True)
+                st.markdown(f'<div class="task-list-panel"><div class="task-list-title">Tasks</div><p style="color: {SLATE_GREY}; font-size: 12px;">No tasks for this day.</p></div>', unsafe_allow_html=True)
                 return
 
             event_rows = []

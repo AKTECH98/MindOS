@@ -58,9 +58,8 @@ def _render_home_hero():
 
 def home_page():
     """Render Home page with hero and task list."""
-    if PAGE_HOME_CSS:
-        st.markdown('<div id="page-is-home" style="display:none;"></div>', unsafe_allow_html=True)
-        st.markdown(PAGE_HOME_CSS, unsafe_allow_html=True)
+    st.markdown('<div id="page-is-home" style="display:none;"></div>', unsafe_allow_html=True)
+    st.markdown(PAGE_HOME_CSS, unsafe_allow_html=True)
     col_main, col_right = st.columns([3.8, 1])
     with col_main:
         _render_home_hero()
