@@ -12,6 +12,7 @@ BTN_PAUSE_RED = "#ef4444"
 BTN_PAUSE_BORDER = "#dc2626"
 FONT_INTER = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
 FONT_MONO = "'JetBrains Mono', monospace"
+
 GLOBAL_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
@@ -119,6 +120,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 </style>
 """
+
 PAGE_HOME_CSS = """
 <style>
 body:has(#page-is-home) main,

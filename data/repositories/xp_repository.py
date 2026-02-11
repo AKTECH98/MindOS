@@ -1,6 +1,7 @@
 """
 Repository for XP operations.
 """
+from datetime import datetime
 from typing import Dict, Optional, List
 from data.db import UserXP, XPTransaction
 from data.repositories.base_repository import BaseRepository
@@ -30,16 +31,18 @@ class XPRepository(BaseRepository[UserXP]):
             print(f"Error getting/creating XP record: {e}")
             return None
     
-    def add_xp(self, points: int, event_id: Optional[str] = None, 
-               description: Optional[str] = None) -> bool:
+    def add_xp(self, points: int, event_id: Optional[str] = None,
+               description: Optional[str] = None,
+               transaction_created_at: Optional[datetime] = None) -> bool:
         """
         Add XP points and log transaction.
-        
+
         Args:
             points: Number of XP points to add
             event_id: Optional event ID
             description: Optional description
-            
+            transaction_created_at: Optional datetime for the transaction record (e.g. completion time for same-date matching)
+
         Returns:
             True if successful, False otherwise
         """
@@ -47,16 +50,17 @@ class XPRepository(BaseRepository[UserXP]):
             xp_record = self.get_or_create_xp_record()
             if not xp_record:
                 return False
-            
+
             xp_record.total_xp += points
             total_after = xp_record.total_xp
-            
-            # Log transaction
+
+            # Log transaction (use completion time when provided so completion and XP share the same date)
             transaction = XPTransaction(
                 points=points,
                 event_id=event_id,
                 description=description or f"Task completed (+{points} XP)",
-                total_xp_after=total_after
+                total_xp_after=total_after,
+                created_at=transaction_created_at if transaction_created_at is not None else datetime.now()
             )
             self.db.add(transaction)
             

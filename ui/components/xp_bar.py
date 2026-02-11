@@ -154,9 +154,7 @@ def render_xp_bar():
                 """,
                 unsafe_allow_html=True
             )
-        
     except Exception as e:
         st.error(f"Error loading XP information: {e}")
         st.markdown("### 🎮 Level 1")
         st.progress(0.0)
-

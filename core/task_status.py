@@ -1,5 +1,5 @@
 """Core logic for task status and XP management."""
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 from typing import Optional, List, Dict
 from dateutil import tz
 
@@ -47,11 +47,18 @@ class TaskStatusCore:
         if completion_date is None:
             completion_date = date.today()
         
+        completed_at_datetime = None
+        if completion_date is not None and completion_date != date.today():
+            completed_at_datetime = datetime.combine(completion_date, time(23, 59, 59))
+        
         try:
             session_core = TaskSessionCore()
             active_session = session_core.get_active_session(event_id)
             was_already_done = self.completion_repo.is_done(event_id, completion_date)
-            completion = self.completion_repo.mark_done(event_id, description.strip(), completion_date)
+            completion = self.completion_repo.mark_done(
+                event_id, description.strip(), completion_date,
+                completed_at_datetime=completed_at_datetime
+            )
             if not completion:
                 return False
             if active_session and completion and completion.completed_at:
@@ -62,10 +69,13 @@ class TaskStatusCore:
             
             if not was_already_done:
                 try:
+                    is_old_task = completion_date != date.today()
+                    points = (2 * self.XP_PER_TASK) if is_old_task else self.XP_PER_TASK  # +10 for old (refund deduction + completion), +5 for today
                     self.xp_repo.add_xp(
-                        self.XP_PER_TASK,
+                        points,
                         event_id=str(event_id),
-                        description=f"Task completed: {event_id}"
+                        description=f"Task completed: {event_id}",
+                        transaction_created_at=None if is_old_task else completion.completed_at,  # old task: record at current time
                     )
                 except Exception as e:
                     print(f"Warning: Failed to award XP for task completion: {e}")
@@ -263,7 +273,8 @@ class TaskStatusCore:
                                             self.xp_repo.add_xp(
                                                 self.XP_PER_TASK,
                                                 event_id=str(base_id),
-                                                description=f"Task completed: {base_id}"
+                                                description=f"Task completed: {base_id}",
+                                                transaction_created_at=completed_at_datetime,
                                             )
                                             running_xp_awarded += self.XP_PER_TASK
                                         except Exception as e:
