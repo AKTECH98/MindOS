@@ -100,9 +100,6 @@ def render_contribution_chart():
             padding: 16px;
             position: relative;
             min-width: 0;
-            background-image: 
-                linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
             background-size: 40px 40px;
         }
         .daily-pulse-title {
@@ -123,7 +120,7 @@ def render_contribution_chart():
             cursor: pointer;
             position: relative;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 2px solid rgba(0,0,0,0.1);
             flex-shrink: 0;
         }
         .contrib-square:hover {

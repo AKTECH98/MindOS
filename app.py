@@ -12,6 +12,7 @@ from ui.components.task_list_panel import render_task_list_panel
 from ui.components.countdown_timer import render_90day_countdown
 from data.db import init_db
 from core.task_status import TaskStatusCore
+from core.xp import XPCore
 
 
 @st.cache_resource
@@ -66,6 +67,20 @@ def home_page():
     with col_main:
         _render_home_hero()
     with col_right:
+        try:
+            xp_core = XPCore()
+            xp_info = xp_core.get_xp_info()
+            level = xp_info.get("level", 1)
+            st.markdown(
+                f'<div>'
+                f'<div style="font-size: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: {SMART_BLUE};">Level {level}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            render_xp_bar()
+        except Exception:
+            pass
+        st.markdown('<div style="margin-top: 12px;"></div>', unsafe_allow_html=True)
         render_task_list_panel()
 
 

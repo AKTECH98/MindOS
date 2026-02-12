@@ -145,5 +145,9 @@ body:has(#page-is-home) [data-testid="stHorizontalBlock"] > div:first-child .stT
 body:has(#page-is-home) [data-testid="stHorizontalBlock"] > div:first-child .stTextInput input {
     border-radius: 16px !important;
 }
+/* Tighten gap between Level and XP bar in right column */
+body:has(#page-is-home) [data-testid="stHorizontalBlock"] > div:last-child > [data-testid="stVerticalBlock"] {
+    gap: 0.5rem !important;
+}
 </style>
 """

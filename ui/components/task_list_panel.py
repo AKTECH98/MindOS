@@ -8,6 +8,22 @@ from core.task_session import TaskSessionCore
 from ui.theme import SLATE_GREY, BTN_START_GREEN, BTN_PAUSE_RED
 
 
+def _format_time_spent(seconds: int) -> str:
+    """Format seconds as e.g. '2Hrs 15Mins 30Sec', '45Mins 0Sec', or '0Sec'."""
+    if seconds <= 0:
+        return "0Sec"
+    hours = seconds // 3600
+    mins = (seconds % 3600) // 60
+    secs = seconds % 60
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}Hrs")
+    if mins > 0 or hours > 0:
+        parts.append(f"{mins}Mins")
+    parts.append(f"{secs}Sec")
+    return " ".join(parts)
+
+
 _TASK_PANEL_CSS = f"""
 <style>
 .task-panel-outer > [data-testid="stVerticalBlock"] {{ gap: 0; }}
@@ -138,8 +154,21 @@ _TASK_PANEL_CSS = f"""
     color: white !important;
 }}
 .task-panel-outer button.btn-pause {{
+    background-color: #eab308 !important;
+    color: white !important;
+}}
+.task-panel-outer button.btn-stop {{
     background-color: {BTN_PAUSE_RED} !important;
     color: white !important;
+}}
+
+.task-panel-outer [data-testid="stHorizontalBlock"]:has(> div:nth-child(3)) > div:nth-child(3):has([data-testid="stHorizontalBlock"] > div:nth-child(2)) [data-testid="stHorizontalBlock"] {{
+    gap: 0.5rem !important;
+}}
+.task-panel-outer [data-testid="stHorizontalBlock"]:has(> div:nth-child(3)) > div:nth-child(3):has([data-testid="stHorizontalBlock"] > div:nth-child(2)) .stButton > button {{
+    min-width: unset !important;
+    width: auto !important;
+    padding: 2px 4px !important;
 }}
 .task-panel-outer [data-testid="stHorizontalBlock"]:has(> div:nth-child(2)):not(:has(> div:nth-child(3))) {{
     align-items: flex-start !important;
@@ -160,6 +189,25 @@ _TASK_PANEL_CSS = f"""
     width: 100% !important;
     min-width: 0 !important;
 }}
+.task-list-item-title-wrap {{
+    position: relative;
+    display: inline-block;
+}}
+.task-list-item-time-today {{
+    display: block;
+    font-size: 12px;
+    font-weight: normal;
+    color: {SLATE_GREY};
+    margin-top: 2px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+}}
+.task-list-item-title-wrap:hover .task-list-item-time-today {{
+    opacity: 1;
+    max-height: 1.5em;
+}}
 </style>
 """
 
@@ -177,8 +225,9 @@ _PANEL_MARK_AND_BUTTONS_SCRIPT = """
         document.querySelectorAll('.task-panel-outer').forEach(function(outer) {
             outer.querySelectorAll('button').forEach(function(btn) {
                 var t = (btn.textContent || '').trim();
-                if (t === 'Start') btn.classList.add('btn-start');
-                else if (t === 'Pause') btn.classList.add('btn-pause');
+                if (t === '▶') btn.classList.add('btn-start');
+                else if (t === '⏸') btn.classList.add('btn-pause');
+                else if (t === '■') btn.classList.add('btn-stop');
             });
         });
     }
@@ -317,9 +366,13 @@ def render_task_list_panel():
                             st.rerun()
                     with col_title:
                         xp_gained = f"+{TaskStatusCore.XP_PER_TASK}"
+                        time_sec = session_core.get_time_spent_for_date(base_event_id, selected_date)
+                        time_str = _format_time_spent(time_sec)
                         st.markdown(
                             f'<div class="task-list-item task-list-item-done">'
-                            f'<strong>{title}</strong><span class="task-xp-gained" style="color: {BTN_START_GREEN};">{xp_gained}</span></div>',
+                            f'<div class="task-list-item-title-wrap"><strong>{title}</strong>'
+                            f'<span class="task-list-item-time-today">Time spent today: {time_str}</span></div>'
+                            f'<span class="task-xp-gained" style="color: {BTN_START_GREEN};">{xp_gained}</span></div>',
                             unsafe_allow_html=True
                         )
                     with col_btn:
@@ -353,15 +406,29 @@ def render_task_list_panel():
                                 st.session_state.pop(f"description_input_task_{base_event_id}", None)
                                 st.rerun()
                     with col_title:
-                        st.markdown(f'<div class="task-list-item"><strong>{title}</strong></div>', unsafe_allow_html=True)
+                        time_sec = session_core.get_time_spent_for_date(base_event_id, selected_date)
+                        time_str = _format_time_spent(time_sec)
+                        st.markdown(
+                            f'<div class="task-list-item"><div class="task-list-item-title-wrap">'
+                            f'<strong>{title}</strong>'
+                            f'<span class="task-list-item-time-today">Time spent today: {time_str}</span></div></div>',
+                            unsafe_allow_html=True
+                        )
                     with col_btn:
                         if not showing_description:
                             if is_running:
-                                if st.button("Pause", key=f"task_pause_{event_id_str}"):
-                                    session_core.pause_session(base_event_id)
-                                    st.rerun()
+                                sub_col_pause, sub_col_stop = st.columns(2)
+                                with sub_col_pause:
+                                    if st.button("⏸", key=f"task_pause_{event_id_str}"):
+                                        session_core.pause_session(base_event_id)
+                                        st.rerun()
+                                with sub_col_stop:
+                                    if st.button("■", key=f"task_stop_{event_id_str}"):
+                                        session_core.pause_session(base_event_id)
+                                        st.session_state[f'show_description_input_task_{base_event_id}'] = True
+                                        st.rerun()
                             else:
-                                if st.button("Start", key=f"task_start_{event_id_str}"):
+                                if st.button("▶", key=f"task_start_{event_id_str}"):
                                     session_core.start_session(base_event_id)
                                     st.rerun()
 
