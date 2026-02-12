@@ -14,10 +14,6 @@ _STATS_CSS = """
     border-radius: 8px;
     padding: 21px;
     position: relative;
-    background-image: 
-        linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
-    background-size: 40px 40px;
     margin-top: 0;
 }
 

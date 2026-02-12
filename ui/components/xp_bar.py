@@ -24,19 +24,13 @@ _XP_BAR_CSS = """
     position: relative;
     height: 24px;
     overflow: hidden;
-    background-image: 
-        linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
-    background-size: 40px 40px;
 }
 .progress-bar-inner {
     height: 100%;
     position: relative;
     overflow: hidden;
     border-radius: 10px;
-    background: repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.03) 19px, rgba(255,255,255,0.03) 20px);
 }
-.progress-bar-segments { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; gap: 0; }
 .progress-segment { width: 5%; border-right: 1px solid rgba(255, 255, 255, 0.05); height: 100%; }
 .progress-bar-fill {
     height: 100%;
@@ -115,7 +109,7 @@ def render_xp_bar():
                 </div>
                 <div class="progress-bar-outer">
                     <div class="progress-bar-inner">
-                        <div class="progress-bar-segments">{segments_html}</div>
+                        <div>{segments_html}</div>
                         <div class="progress-bar-fill negative negative-fill" style="width: {progress_percent}%;">
                             <div class="progress-spark" style="left: 100%; color: {SMART_BLUE};"></div>
                         </div>
@@ -144,7 +138,7 @@ def render_xp_bar():
                 f"""
                 <div class="progress-bar-outer">
                     <div class="progress-bar-inner">
-                        <div class="progress-bar-segments">{segments_html}</div>
+                        <div>{segments_html}</div>
                         <div class="progress-bar-fill positive" style="width: {progress_percent}%;">
                             <div class="progress-spark" style="left: 100%; color: {SMART_BLUE};"></div>
                             <div class="progress-text leading-edge">{progress_percent:.0f}%</div>
