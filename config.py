@@ -1,4 +1,5 @@
 import os
+from datetime import date, timedelta
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -39,5 +40,22 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 DISCORD_CHANNEL_ID = os.getenv("DISCORD_CHANNEL_ID", "")
+
+# 90-day countdown: optional start date (countdown shows "Countdown starts in ..." before this).
+# If COUNTDOWN_START_DATE is set, end is derived as start + 90 days. If only COUNTDOWN_END_DATE
+# is set, no pre-start phase. If neither set, default start is 2026-02-14 and end is start + 90.
+_countdown_start_env = os.getenv("COUNTDOWN_START_DATE")
+_countdown_end_env = os.getenv("COUNTDOWN_END_DATE")
+if _countdown_start_env:
+    _start_d = date.fromisoformat(_countdown_start_env.strip())
+    COUNTDOWN_START_DATE = _countdown_start_env.strip()
+    COUNTDOWN_END_DATE = (_start_d + timedelta(days=90)).isoformat()
+elif _countdown_end_env:
+    COUNTDOWN_START_DATE = None
+    COUNTDOWN_END_DATE = _countdown_end_env.strip()
+else:
+    COUNTDOWN_START_DATE = "2026-02-14"
+    _start_d = date.fromisoformat(COUNTDOWN_START_DATE)
+    COUNTDOWN_END_DATE = (_start_d + timedelta(days=90)).isoformat()
 
 

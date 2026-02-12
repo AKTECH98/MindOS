@@ -9,6 +9,7 @@ from ui.components.contribution_chart import render_contribution_chart
 from ui.components.stats_panel import render_stats_panel
 from ui.components.left_sidebar import render_left_sidebar
 from ui.components.task_list_panel import render_task_list_panel
+from ui.components.countdown_timer import render_90day_countdown
 from data.db import init_db
 from core.task_status import TaskStatusCore
 
@@ -60,6 +61,7 @@ def home_page():
     """Render Home page with hero and task list."""
     st.markdown('<div id="page-is-home" style="display:none;"></div>', unsafe_allow_html=True)
     st.markdown(PAGE_HOME_CSS, unsafe_allow_html=True)
+    render_90day_countdown()
     col_main, col_right = st.columns([3.8, 1])
     with col_main:
         _render_home_hero()
