@@ -31,7 +31,9 @@ export default function CalendarEventsView({ compact = false }: Props) {
                 const { statuses: s } = await getBatchCompletionStatus(ids, selectedDate);
                 setStatuses(s);
             } else { setStatuses({}); }
-        } catch { /* ignore */ }
+        } catch (err) {
+            console.error("CalendarEventsView: failed to load", err);
+        }
         setLoading(false);
     }, [selectedDate]);
 

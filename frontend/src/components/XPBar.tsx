@@ -6,7 +6,11 @@ export default function XPBar() {
     const [info, setInfo] = useState<{ level: number; total_xp: number; current_level_xp: number; xp_for_next_level: number } | null>(null);
 
     useEffect(() => {
-        getXPInfo().then(setInfo).catch(() => { });
+        getXPInfo()
+            .then(setInfo)
+            .catch((err) => {
+                console.error("XPBar: failed to load XP", err);
+            });
     }, []);
 
     if (!info) return null;
