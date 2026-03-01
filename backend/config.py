@@ -33,7 +33,7 @@ def mask_database_url(url: str) -> str:
         pass
     return url
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent  # project root (parent of backend/)
 TOKEN_FILE = BASE_DIR / "secrets" / "token.json"
 CALENDAR_SCOPE = ["https://www.googleapis.com/auth/calendar"]
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -58,4 +58,5 @@ else:
     _start_d = date.fromisoformat(COUNTDOWN_START_DATE)
     COUNTDOWN_END_DATE = (_start_d + timedelta(days=90)).isoformat()
 
-
+# XP awarded per task completion
+XP_PER_TASK = 5

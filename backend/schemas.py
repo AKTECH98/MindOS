@@ -1,0 +1,112 @@
+"""
+Pydantic schemas for MindOS API request/response types.
+"""
+import datetime as dt
+from typing import Optional, List, Dict
+
+from pydantic import BaseModel
+
+
+# ─── XP ────────────────────────────────────────────────────────────────────────
+
+class XPInfoResponse(BaseModel):
+    total_xp: int
+    level: int
+    current_level_xp: int
+    xp_for_next_level: int
+
+
+class XPTransactionResponse(BaseModel):
+    id: int
+    points: int
+    event_id: Optional[str] = None
+    description: Optional[str] = None
+    total_xp_after: int
+    created_at: dt.datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Tasks ──────────────────────────────────────────────────────────────────────
+
+class TaskCompletionRequest(BaseModel):
+    description: str
+    date: Optional[dt.date] = None
+
+
+
+class TaskCompletionStatusItem(BaseModel):
+    event_id: str
+    is_done: bool
+    completed_at: Optional[dt.datetime] = None
+    completion_description: Optional[str] = None
+
+
+class BatchCompletionStatusResponse(BaseModel):
+    statuses: Dict[str, TaskCompletionStatusItem]
+
+
+# ─── Sessions ──────────────────────────────────────────────────────────────────
+
+class SessionActionResponse(BaseModel):
+    success: bool
+    event_id: str
+    message: str
+
+
+class TimeSpentResponse(BaseModel):
+    event_id: str
+    total_seconds: int
+    formatted: str
+
+
+class CurrentDurationResponse(BaseModel):
+    event_id: str
+    is_running: bool
+    duration_seconds: Optional[int] = None
+
+
+# ─── Calendar ──────────────────────────────────────────────────────────────────
+
+class CalendarEventResponse(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    start_time: Optional[dt.datetime] = None
+    end_time: Optional[dt.datetime] = None
+    is_all_day: bool
+    recurrence: Optional[str] = None
+
+
+class CalendarStatusResponse(BaseModel):
+    authenticated: bool
+
+
+class CreateEventRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    start_time: dt.datetime
+    end_time: dt.datetime
+    is_all_day: bool = False
+
+
+class UpdateEventRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    start_time: Optional[dt.datetime] = None
+    end_time: Optional[dt.datetime] = None
+
+
+# ─── Stats ─────────────────────────────────────────────────────────────────────
+
+class ContributionDataResponse(BaseModel):
+    contributions: Dict[str, int]
+    max_count: int
+
+
+class StatsOverviewResponse(BaseModel):
+    total_completed: int
+    completed_today: int
+    completed_this_week: int
+    current_streak_days: int
