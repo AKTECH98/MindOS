@@ -62,8 +62,7 @@ def home_page():
     """Render Home page with hero and task list."""
     st.markdown('<div id="page-is-home" style="display:none;"></div>', unsafe_allow_html=True)
     st.markdown(PAGE_HOME_CSS, unsafe_allow_html=True)
-    render_90day_countdown()
-    col_main, col_right = st.columns([3.8, 1])
+    col_main, col_right = st.columns([3.5, 1.2])
     with col_main:
         _render_home_hero()
     with col_right:
@@ -87,7 +86,7 @@ def home_page():
 def dashboard_page():
     """Render Dashboard: sidebar, XP bar, contribution chart, stats, calendar."""
     with st.container(border=False):
-        col_sidebar, col_main, col_right = st.columns([0.8, 3.2, 1])
+        col_sidebar, col_main, col_right = st.columns([1.1, 3, 1.1])
         with col_sidebar:
             render_left_sidebar()
         with col_main:
@@ -126,6 +125,9 @@ def main():
 
     home = st.Page(home_page, title="Home", icon="🏠", default=True)
     dashboard = st.Page(dashboard_page, title="Dashboard", icon="📊")
+
+    with st.sidebar:
+        render_90day_countdown()
 
     pg = st.navigation([home, dashboard])
     pg.run()

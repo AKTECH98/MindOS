@@ -3,7 +3,6 @@ import streamlit as st
 from pathlib import Path
 import time
 
-from config import TOKEN_FILE
 from integrations.gcal_authentication import authenticate as run_google_auth
 from ui.theme import SMART_BLUE, SLATE_GREY, FONT_INTER
 

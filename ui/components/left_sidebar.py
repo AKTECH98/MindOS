@@ -8,15 +8,6 @@ from ui.theme import SMART_BLUE, SLATE_GREY, FONT_INTER
 _LEFT_SIDEBAR_CSS = """
 <style>
 .boss-bar-container { padding: 0; }
-.boss-bar-header {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 32px;
-    font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-    margin-bottom: 8px;
-}
-.xp-number { font-family: 'JetBrains Mono', monospace; }
 </style>
 """
 
@@ -34,7 +25,7 @@ def render_left_sidebar():
             f"""
             <div class="boss-bar-container" style="min-height: 300px; display: flex; flex-direction: column;">
                 <div class="boss-bar-header" style="color: {SMART_BLUE};">LEVEL {level}</div>
-                <p style="font-family: {FONT_INTER}; font-size: 28px; color: {SLATE_GREY}; font-weight: 500; font-style: italic;
+                <p style="font-family: {FONT_INTER}; font-size: 26px; color: {SLATE_GREY}; font-weight: 500; font-style: italic;
                    margin: 0; padding: 0; text-align: left; line-height: 1.8; flex: 1; display: flex; align-items: center;">
                     "{quote}"
                 </p>

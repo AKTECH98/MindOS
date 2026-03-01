@@ -122,7 +122,7 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                             task_core.mark_event_undone(base_event_id, completion_date=selected_date)
                             if 'calendar_events' in st.session_state:
                                 del st.session_state['calendar_events']
-                            if hasattr(st.session_state, 'xp_info'):
+                            if 'xp_info' in st.session_state:
                                 del st.session_state['xp_info']
                             st.rerun()
                 else:
@@ -160,7 +160,7 @@ def render_event_card(event: Dict, is_done: bool = False, completed_at: Optional
                                     del st.session_state[f"description_input_{unique_event_key}"]
                                 if 'calendar_events' in st.session_state:
                                     del st.session_state['calendar_events']
-                                if hasattr(st.session_state, 'xp_info'):
+                                if 'xp_info' in st.session_state:
                                     del st.session_state['xp_info']
                                 st.rerun()
                             else:

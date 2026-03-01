@@ -4,14 +4,10 @@ SLATE_GREY = "#64748b"
 SLATE_BG = "#475569"
 SLATE_BORDER = "#64748b"
 TEXT_LIGHT = "#f1f5f9"
-PLACEHOLDER = "#94a3b8"
 CONTRIB_COLORS = ["#64748b", "#67e8f9", "#22d3ee", "#06b6d4", "#0891b2"]
 BTN_START_GREEN = "#22c55e"
-BTN_START_BORDER = "#16a34a"
 BTN_PAUSE_RED = "#ef4444"
-BTN_PAUSE_BORDER = "#dc2626"
 FONT_INTER = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
-FONT_MONO = "'JetBrains Mono', monospace"
 
 GLOBAL_CSS = """
 <style>
@@ -36,8 +32,8 @@ main [data-testid="stVerticalBlock"]:not(.task-panel-outer) {
     border: none !important;
 }
 
-main [data-testid="stHorizontalBlock"],
-main [data-testid="stHorizontalBlock"] > div {
+main [data-testid="stHorizontalBlock"] > div,
+[data-testid="stHorizontalBlock"] > div {
     border: none !important;
 }
 .task-panel-outer {
@@ -58,6 +54,18 @@ main [data-testid="stHorizontalBlock"] > div {
 
 .stApp {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Reduce gap between main content and sidebar (space between them only) */
+.stApp [data-testid="stAppViewContainer"] {
+    margin-right: 0 !important;
+}
+.stApp [data-testid="stSidebar"] {
+    margin-left: 0 !important;
+}
+/* If layout uses flex gap between main and sidebar */
+.stApp > div:first-child {
+    gap: 0.25rem !important;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -118,6 +126,15 @@ h1, h2, h3, h4, h5, h6 {
 .number, [class*="number"] {
     font-family: 'JetBrains Mono', monospace;
 }
+.boss-bar-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+.xp-number { font-family: 'JetBrains Mono', monospace; }
 </style>
 """
 
