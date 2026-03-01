@@ -44,7 +44,10 @@ app.include_router(stats.router,    prefix="/api")
 def on_startup():
     try:
         init_db()
+        from backend.config import mask_database_url
+        from backend import database
         print("✅ MindOS API started — DB initialized.")
+        print(f"   Database: {mask_database_url(database.DATABASE_URL)}")
     except Exception as e:
         print(f"⚠️  DB init warning: {e}")
 

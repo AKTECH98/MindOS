@@ -50,7 +50,9 @@ export default function ContributionChart() {
     useEffect(() => {
         getContributions()
             .then((r) => { setData(r.contributions); setMax(r.max_count); })
-            .catch(() => { });
+            .catch((err) => {
+                console.error("ContributionChart: failed to load contributions", err);
+            });
     }, []);
 
     const weeks = buildWeeks();

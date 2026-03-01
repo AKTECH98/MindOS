@@ -9,7 +9,11 @@ export default function StatsPanel() {
     } | null>(null);
 
     useEffect(() => {
-        getStatsOverview().then(setStats).catch(() => { });
+        getStatsOverview()
+            .then(setStats)
+            .catch((err) => {
+                console.error("StatsPanel: failed to load stats", err);
+            });
     }, []);
 
     const totalDays = stats ? Math.ceil(stats.total_completed / Math.max(1, stats.completed_this_week / 7)) : 0;
