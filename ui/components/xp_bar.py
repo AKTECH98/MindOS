@@ -7,14 +7,6 @@ from ui.theme import SMART_BLUE, SLATE_GREY
 
 _XP_BAR_CSS = """
 <style>
-.boss-bar-header {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 32px;
-    font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-    margin-bottom: 8px;
-}
 .status-text { font-family: inherit; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .progress-bar-outer {
     background: var(--slate-bg);
@@ -76,7 +68,6 @@ _XP_BAR_CSS = """
 .progress-text.leading-edge { right: 0; margin-right: 8px; }
 .progress-text.inside { left: 8px; }
 .xp-label { font-family: inherit; }
-.xp-number { font-family: 'JetBrains Mono', monospace; }
 </style>
 """
 
@@ -150,5 +141,3 @@ def render_xp_bar():
             )
     except Exception as e:
         st.error(f"Error loading XP information: {e}")
-        st.markdown("### 🎮 Level 1")
-        st.progress(0.0)

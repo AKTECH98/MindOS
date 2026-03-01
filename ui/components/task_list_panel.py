@@ -371,7 +371,7 @@ def render_task_list_panel():
                         st.markdown(
                             f'<div class="task-list-item task-list-item-done">'
                             f'<div class="task-list-item-title-wrap"><strong>{title}</strong>'
-                            f'<span class="task-list-item-time-today">Time spent today: {time_str}</span></div>'
+                            f'<span class="task-list-item-time-today">Time spent: {time_str}</span></div>'
                             f'<span class="task-xp-gained" style="color: {BTN_START_GREEN};">{xp_gained}</span></div>',
                             unsafe_allow_html=True
                         )
@@ -411,7 +411,7 @@ def render_task_list_panel():
                         st.markdown(
                             f'<div class="task-list-item"><div class="task-list-item-title-wrap">'
                             f'<strong>{title}</strong>'
-                            f'<span class="task-list-item-time-today">Time spent today: {time_str}</span></div></div>',
+                            f'<span class="task-list-item-time-today">Time spent: {time_str}</span></div></div>',
                             unsafe_allow_html=True
                         )
                     with col_btn:
