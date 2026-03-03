@@ -156,3 +156,20 @@ def mark_event_undone(
         ))
     db.commit()
     return {"success": True, "event_id": base_id, "xp_deducted": XP_PER_TASK}
+
+
+@router.post("/run-daily-deduction")
+def run_daily_deduction():
+    """
+    Manually trigger the daily XP deduction for any calendar tasks from
+    yesterday (or missed days) that were not marked as completed.
+
+    Safe to call multiple times — the deduction only runs once per calendar
+    day regardless of how many times this endpoint is hit.
+    """
+    try:
+        from core.task_status import TaskStatusCore
+        result = TaskStatusCore().deduct_xp_for_pending_tasks_from_yesterday()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Deduction error: {str(e)}")
