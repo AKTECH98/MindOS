@@ -1,10 +1,7 @@
-"""
-Base repository class for database operations.
-"""
 from typing import TypeVar, Generic, Optional, List, Type
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from data.db import get_db
+import database as _database_module
 
 T = TypeVar('T')
 
@@ -25,7 +22,7 @@ class BaseRepository(Generic[T]):
     def db(self) -> Session:
         """Get database session."""
         if self._db is None:
-            self._db = get_db()
+            self._db = _database_module.SessionLocal()
         return self._db
     
     def close(self):
