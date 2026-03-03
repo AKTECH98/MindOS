@@ -55,3 +55,16 @@ class DailyXPDeduction(Base):
     total_xp_deducted = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
 
+
+class CountdownTimer(Base):
+    """Model for tracking multiple goal timers."""
+    __tablename__ = 'countdown_timers'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    total_seconds = Column(Integer, nullable=False)
+    remaining_seconds = Column(Integer, nullable=False)
+    is_running = Column(Boolean, default=False, nullable=False)
+    last_updated_at = Column(DateTime, nullable=True) # last_updated_at can be Null before start
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
+

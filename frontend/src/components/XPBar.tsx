@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import { getXPInfo } from "@/lib/api";
 
-export default function XPBar() {
+interface Props {
+    refreshKey?: number;
+}
+
+export default function XPBar({ refreshKey = 0 }: Props) {
     const [info, setInfo] = useState<{ level: number; total_xp: number; current_level_xp: number; xp_for_next_level: number } | null>(null);
 
     useEffect(() => {
@@ -11,7 +15,7 @@ export default function XPBar() {
             .catch((err) => {
                 console.error("XPBar: failed to load XP", err);
             });
-    }, []);
+    }, [refreshKey]);
 
     if (!info) return null;
 

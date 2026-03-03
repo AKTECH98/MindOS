@@ -9,9 +9,10 @@ import TaskCard from "./TaskCard";
 
 interface Props {
     compact?: boolean; // true = compact task list (Home), false = two-column (Dashboard)
+    onXPChange?: () => void; // called after a task is marked done/undone so parent can refresh XP
 }
 
-export default function CalendarEventsView({ compact = false }: Props) {
+export default function CalendarEventsView({ compact = false, onXPChange }: Props) {
     const [authenticated, setAuthenticated] = useState<boolean | null>(null);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [statuses, setStatuses] = useState<Record<string, TaskCompletionStatus>>({});
@@ -88,7 +89,7 @@ export default function CalendarEventsView({ compact = false }: Props) {
                                     key={ev.id}
                                     event={ev}
                                     status={statuses[ev.id] ?? null}
-                                    onStatusChange={load}
+                                    onStatusChange={() => { load(); onXPChange?.(); }}
                                     date={selectedDate}
                                 />
                             ))}
@@ -102,7 +103,7 @@ export default function CalendarEventsView({ compact = false }: Props) {
                                 ? <p className="no-tasks">All done! 🎉</p>
                                 : <div className="tasks-card">
                                     {pending.map((ev) => (
-                                        <TaskCard key={ev.id} event={ev} status={statuses[ev.id] ?? null} onStatusChange={load} date={selectedDate} />
+                                        <TaskCard key={ev.id} event={ev} status={statuses[ev.id] ?? null} onStatusChange={() => { load(); onXPChange?.(); }} date={selectedDate} />
                                     ))}
                                 </div>}
                         </div>
@@ -112,7 +113,7 @@ export default function CalendarEventsView({ compact = false }: Props) {
                                 ? <p className="no-tasks">No completed tasks yet.</p>
                                 : <div className="tasks-card">
                                     {done.map((ev) => (
-                                        <TaskCard key={ev.id} event={ev} status={statuses[ev.id] ?? null} onStatusChange={load} date={selectedDate} />
+                                        <TaskCard key={ev.id} event={ev} status={statuses[ev.id] ?? null} onStatusChange={() => { load(); onXPChange?.(); }} date={selectedDate} />
                                     ))}
                                 </div>}
                         </div>

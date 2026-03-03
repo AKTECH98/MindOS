@@ -18,36 +18,67 @@ interface Props {
 export default function TaskCard({ event, status, onStatusChange, date }: Props) {
     const isDone = status?.is_done ?? false;
     const [running, setRunning] = useState(false);
-    const [liveSeconds, setLiveSeconds] = useState(0); // seconds for the currently-active session
-    const [daySeconds, setDaySeconds] = useState<number | null>(null); // total for the viewed day
+    // liveSeconds = base elapsed seconds from server + client-side ticks since start
+    const [liveSeconds, setLiveSeconds] = useState(0);
+    const [daySeconds, setDaySeconds] = useState<number | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [desc, setDesc] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+    const tickRef = useRef<NodeJS.Timeout | null>(null);
+    // Timestamp (Date.now()) when the current local tick started, so we can compute elapsed without polling
+    const tickStartRef = useRef<number | null>(null);
+    // Server-confirmed base seconds at tick start
+    const baseSecondsRef = useRef<number>(0);
 
     const today = toISODate(new Date());
     const isPast = date < today;
 
-    // On mount (and when date changes): fetch time spent for the selected day
-    useEffect(() => {
-        getTimeSpent(event.id, date)
-            .then((r) => setDaySeconds(r.total_seconds))
-            .catch(() => setDaySeconds(0));
-    }, [event.id, date]);
+    const startTicking = (baseSeconds: number) => {
+        stopTicking();
+        baseSecondsRef.current = baseSeconds;
+        tickStartRef.current = Date.now();
+        setLiveSeconds(baseSeconds);
+        tickRef.current = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - (tickStartRef.current ?? Date.now())) / 1000);
+            setLiveSeconds(baseSecondsRef.current + elapsed);
+        }, 1000);
+    };
 
-    // Poll live duration every second (updates liveSeconds + running state)
+    const stopTicking = () => {
+        if (tickRef.current) {
+            clearInterval(tickRef.current);
+            tickRef.current = null;
+        }
+        tickStartRef.current = null;
+    };
+
+    // On mount (and when event/date changes): init state from server
     useEffect(() => {
-        const poll = async () => {
+        const init = async () => {
             try {
-                const r = await getCurrentDuration(event.id);
-                setRunning(r.is_running);
-                setLiveSeconds(r.duration_seconds ?? 0);
-            } catch { /* ignore */ }
+                // Fetch both: total time spent today AND if a session is running right now
+                const [timeRes, durRes] = await Promise.all([
+                    getTimeSpent(event.id, date),
+                    getCurrentDuration(event.id)
+                ]);
+
+                setDaySeconds(timeRes.total_seconds);
+
+                if (durRes.is_running) {
+                    setRunning(true);
+                    // Start ticking from the full day total (which includes the running session)
+                    startTicking(timeRes.total_seconds);
+                }
+            } catch (err) {
+                setDaySeconds(0);
+            }
         };
-        poll();
-        pollRef.current = setInterval(poll, 1000);
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [event.id]);
+
+        init();
+        return () => stopTicking();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [event.id, date]);
 
     const handleCheck = (checked: boolean) => {
         if (checked) { setShowModal(true); }
@@ -64,13 +95,13 @@ export default function TaskCard({ event, status, onStatusChange, date }: Props)
         try {
             if (running) {
                 await pauseSession(event.id);
+                stopTicking();
                 setRunning(false);
             }
             await markTaskDone(event.id, desc.trim(), date);
             setShowModal(false);
             setDesc("");
             onStatusChange();
-            // Refresh day's total after marking done and potentially pausing
             const r = await getTimeSpent(event.id, date);
             setDaySeconds(r.total_seconds);
         } catch { /* ignore */ }
@@ -79,18 +110,30 @@ export default function TaskCard({ event, status, onStatusChange, date }: Props)
 
     const handlePlay = async () => {
         try {
-            await startSession(event.id);
-            setRunning(true);
+            const r = await startSession(event.id);
+            if (r.success) {
+                setRunning(true);
+                // Start ticking from current daySeconds as the base (server accumulates on top)
+                startTicking(daySeconds ?? 0);
+            }
         } catch { /* ignore */ }
     };
+
     const handlePause = async () => {
+        // Optimistically stop the tick so the UI freezes immediately
+        const frozenSeconds = liveSeconds;
+        stopTicking();
+        setRunning(false);
         try {
             await pauseSession(event.id);
-            setRunning(false);
-            // Refresh day's total after pausing
+            // Refresh day total from server (source of truth after pause)
             const r = await getTimeSpent(event.id, date);
             setDaySeconds(r.total_seconds);
-        } catch { /* ignore */ }
+        } catch {
+            // Rollback: server is unreachable — resume ticking from where we froze
+            setRunning(true);
+            startTicking(frozenSeconds);
+        }
     };
 
     // What to display:
@@ -165,3 +208,4 @@ export default function TaskCard({ event, status, onStatusChange, date }: Props)
         </>
     );
 }
+
