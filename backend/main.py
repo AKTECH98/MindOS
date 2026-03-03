@@ -27,7 +27,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +55,18 @@ def on_startup():
         print(f"   Database: {mask_database_url(database.DATABASE_URL)}")
     except Exception as e:
         print(f"⚠️  DB init warning: {e}")
+
+    # Run daily XP deduction for any missed tasks from yesterday (once per day)
+    try:
+        from core.task_status import TaskStatusCore
+        core = TaskStatusCore()
+        if core.should_run_daily_deduction():
+            result = core.deduct_xp_for_pending_tasks_from_yesterday()
+            print(f"💸 Daily XP deduction: {result.get('message', 'done')}")
+        else:
+            print("✅ Daily XP deduction already ran today, skipping.")
+    except Exception as e:
+        print(f"⚠️  Daily XP deduction skipped (calendar may not be authenticated): {e}")
 
 
 @app.get("/health")
