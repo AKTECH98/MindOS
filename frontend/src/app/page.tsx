@@ -1,8 +1,12 @@
 "use client";
+import { useState, useCallback } from "react";
 import XPBar from "@/components/XPBar";
 import CalendarEventsView from "@/components/CalendarEventsView";
 
 export default function HomePage() {
+  const [xpRefreshKey, setXpRefreshKey] = useState(0);
+  const handleXPChange = useCallback(() => setXpRefreshKey((k) => k + 1), []);
+
   return (
     <div className="home-grid">
       {/* Centre: title + subtitle + input */}
@@ -14,8 +18,8 @@ export default function HomePage() {
 
       {/* Right: Level + XP bar + Tasks directly below */}
       <div className="side-panel">
-        <XPBar />
-        <CalendarEventsView compact />
+        <XPBar refreshKey={xpRefreshKey} />
+        <CalendarEventsView compact onXPChange={handleXPChange} />
       </div>
     </div>
   );
