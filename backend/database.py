@@ -34,7 +34,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db():
     """Initialize database connection, create tables, and run migrations."""
-    from .data.db import Base, UserXP
+    from .data.db import Base, UserXP, CountdownTimer
     
     # Core table creation
     Base.metadata.create_all(bind=engine)
@@ -66,7 +66,7 @@ def init_db():
     try:
         if not db.query(UserXP).first():
             db.add(UserXP(total_xp=0))
-            db.commit()
+        db.commit()
     except Exception:
         db.rollback()
     finally:

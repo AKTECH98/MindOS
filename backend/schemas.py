@@ -110,3 +110,19 @@ class StatsOverviewResponse(BaseModel):
     completed_today: int
     completed_this_week: int
     current_streak_days: int
+
+
+# ─── Countdown ─────────────────────────────────────────────────────────────────
+
+class CreateCountdownRequest(BaseModel):
+    name: str
+    total_seconds: int
+
+
+class CountdownResponse(BaseModel):
+    id: int
+    name: str
+    total_seconds: int
+    remaining_seconds: int
+    is_running: bool
+    last_updated_at: Optional[dt.datetime] = None

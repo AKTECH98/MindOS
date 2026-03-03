@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
-from backend.routers import xp, tasks, sessions, calendar, stats
+from backend.routers import xp, tasks, sessions, calendar, stats, countdown
 
 app = FastAPI(
     title="MindOS API",
@@ -43,6 +43,7 @@ app.include_router(tasks.router,    prefix="/api")
 app.include_router(sessions.router, prefix="/api")
 app.include_router(calendar.router, prefix="/api")
 app.include_router(stats.router,    prefix="/api")
+app.include_router(countdown.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -50,9 +51,9 @@ def on_startup():
     try:
         init_db()
         from backend.config import mask_database_url
-        from backend import database
+        from backend.database import DATABASE_URL
         print("✅ MindOS API started — DB initialized.")
-        print(f"   Database: {mask_database_url(database.DATABASE_URL)}")
+        print(f"   Database: {mask_database_url(DATABASE_URL)}")
     except Exception as e:
         print(f"⚠️  DB init warning: {e}")
 
