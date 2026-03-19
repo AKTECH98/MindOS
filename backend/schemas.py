@@ -28,12 +28,53 @@ class XPTransactionResponse(BaseModel):
         from_attributes = True
 
 
-# ─── Tasks ──────────────────────────────────────────────────────────────────────
+# ─── Tasks (Internal) ──────────────────────────────────────────────────────────
+
+class TaskCreate(BaseModel):
+    task_name: str
+    description: Optional[str] = None
+    parent_task_id: Optional[str] = None
+    source_type: str = "internal"
+    external_id: Optional[str] = None
+    task_date: Optional[dt.date] = None
+    progress: int = 0
+    expected_time: Optional[int] = None
+
+
+class TaskUpdate(BaseModel):
+    task_name: Optional[str] = None
+    description: Optional[str] = None
+    parent_task_id: Optional[str] = None
+    source_type: Optional[str] = None
+    external_id: Optional[str] = None
+    task_date: Optional[dt.date] = None
+    progress: Optional[int] = None
+    expected_time: Optional[int] = None
+
+
+class TaskResponse(BaseModel):
+    task_id: str
+    parent_task_id: Optional[str] = None
+    source_type: str
+    external_id: Optional[str] = None
+    task_date: Optional[dt.date] = None
+    task_name: str
+    description: Optional[str] = None
+    progress: int
+    expected_time: Optional[int] = None
+    time_spent: int = 0  # Total seconds from sessions
+    task_created_on: dt.datetime
+    task_updated_on: dt.datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Task Completions (legacy Google Cal path) ─────────────────────────────────
 
 class TaskCompletionRequest(BaseModel):
     description: str
     date: Optional[dt.date] = None
-
 
 
 class TaskCompletionStatusItem(BaseModel):
