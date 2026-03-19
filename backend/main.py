@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
-from backend.routers import xp, tasks, sessions, calendar, stats, countdown
+from backend.routers import xp, sessions, stats, countdown, internal_tasks
 
 app = FastAPI(
     title="MindOS API",
@@ -38,12 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(xp.router,       prefix="/api")
-app.include_router(tasks.router,    prefix="/api")
-app.include_router(sessions.router, prefix="/api")
-app.include_router(calendar.router, prefix="/api")
-app.include_router(stats.router,    prefix="/api")
-app.include_router(countdown.router, prefix="/api")
+app.include_router(xp.router,             prefix="/api")
+app.include_router(sessions.router,       prefix="/api")
+app.include_router(stats.router,          prefix="/api")
+app.include_router(countdown.router,      prefix="/api")
+app.include_router(internal_tasks.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -56,18 +55,6 @@ def on_startup():
         print(f"   Database: {mask_database_url(DATABASE_URL)}")
     except Exception as e:
         print(f"⚠️  DB init warning: {e}")
-
-    # Run daily XP deduction for any missed tasks from yesterday (once per day)
-    try:
-        from core.task_status import TaskStatusCore
-        core = TaskStatusCore()
-        if core.should_run_daily_deduction():
-            result = core.deduct_xp_for_pending_tasks_from_yesterday()
-            print(f"💸 Daily XP deduction: {result.get('message', 'done')}")
-        else:
-            print("✅ Daily XP deduction already ran today, skipping.")
-    except Exception as e:
-        print(f"⚠️  Daily XP deduction skipped (calendar may not be authenticated): {e}")
 
 
 @app.get("/health")
