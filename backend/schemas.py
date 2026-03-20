@@ -65,6 +65,7 @@ class TaskResponse(BaseModel):
     time_spent: int = 0  # Total seconds from sessions
     task_created_on: dt.datetime
     task_updated_on: dt.datetime
+    completed_at: Optional[dt.datetime] = None
 
     class Config:
         from_attributes = True

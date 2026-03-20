@@ -61,11 +61,15 @@ def init_db():
             if 'task_id' not in ec_cols:
                 conn.execute(text("ALTER TABLE event_completions ADD COLUMN task_id VARCHAR(36)"))
                 conn.commit()
-            try:
-                conn.execute(text("ALTER TABLE event_completions ALTER COLUMN event_id DROP NOT NULL"))
+            if 'event_id' not in ec_cols:
+                conn.execute(text("ALTER TABLE event_completions ADD COLUMN event_id VARCHAR"))
                 conn.commit()
-            except Exception:
-                pass  # already nullable
+            else:
+                try:
+                    conn.execute(text("ALTER TABLE event_completions ALTER COLUMN event_id DROP NOT NULL"))
+                    conn.commit()
+                except Exception:
+                    pass  # already nullable
 
         # task_sessions: ensure task_id exists
         if 'task_sessions' in inspector.get_table_names():
@@ -78,6 +82,9 @@ def init_db():
             xp_cols = [c['name'] for c in inspector.get_columns('xp_transactions')]
             if 'task_id' not in xp_cols:
                 conn.execute(text("ALTER TABLE xp_transactions ADD COLUMN task_id VARCHAR(36)"))
+                conn.commit()
+            if 'event_id' not in xp_cols:
+                conn.execute(text("ALTER TABLE xp_transactions ADD COLUMN event_id VARCHAR"))
                 conn.commit()
 
         # tasks: Migration to rename expected_completion_at -> expected_time

@@ -40,6 +40,7 @@ class EventCompletion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     # Internal task UUID — the new primary reference
     task_id  = Column(String(36), ForeignKey('tasks.task_id'), nullable=True, index=True)
+    event_id = Column(String, nullable=True, index=True) # Google Cal event ID
     is_done = Column(Boolean, default=False, nullable=False)
     completed_at = Column(DateTime, nullable=True, index=True)
     completion_description = Column(Text, nullable=True)
@@ -72,6 +73,7 @@ class XPTransaction(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     points = Column(Integer, nullable=False)
     task_id  = Column(String(36), ForeignKey('tasks.task_id'), nullable=True, index=True)
+    event_id = Column(String, nullable=True, index=True) # Google Cal event ID
     description = Column(String, nullable=True)
     total_xp_after = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
