@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Task, listTasks, createTask, updateTask, deleteTask } from "@/lib/api";
 
 /**
@@ -221,42 +221,41 @@ function TaskRow({ task, depth, onRefresh }: TaskRowProps) {
                             )}
                         </div>
                         
-                        {/* Bordered Progress Bar with Overtime Overflow */}
-                        {task.expected_time && task.expected_time > 0 && (
-                            <div style={{ position: "relative", width: "100%", height: 8, marginTop: "0.2rem" }}>
-                                <div style={{ 
-                                    width: "100%", height: "100%", background: "#f0f0f0", 
-                                    border: "1px solid #e0e0e0", borderRadius: 4, overflow: "visible",
-                                    display: "flex" 
-                                }}>
-                                    {/* Teal: Time within budget */}
+                        {/* Bordered Progress Bar (no overflow) */}
+                        {task.expected_time && task.expected_time > 0 && (() => {
+                            const totalDisplayTime = Math.max(task.expected_time, sessionSeconds);
+                            const budgetPercent = (task.expected_time / totalDisplayTime) * 100;
+                            const spentPercent = (sessionSeconds / totalDisplayTime) * 100;
+                            const isOvertime = sessionSeconds > task.expected_time;
+
+                            return (
+                                <div style={{ position: "relative", width: "100%", height: 8, marginTop: "0.2rem" }}>
                                     <div style={{ 
-                                        width: `${Math.min((sessionSeconds / task.expected_time) * 100, 100)}%`, 
-                                        height: "100%", 
-                                        background: isRunning ? "var(--teal)" : "#bcc6cc",
-                                        borderRadius: sessionSeconds >= task.expected_time ? "4px 0 0 4px" : 4,
-                                        transition: "width 0.5s ease"
-                                    }} />
-                                    
-                                    {/* Red: Overtime part (overflows visible container) */}
-                                    {sessionSeconds > task.expected_time && (
+                                        width: "100%", height: "100%", background: "#f0f0f0", 
+                                        border: "1px solid #e0e0e0", borderRadius: 4, overflow: "hidden",
+                                        display: "flex" 
+                                    }}>
+                                        {/* Teal: Budget Part */}
                                         <div style={{ 
-                                            position: "absolute",
-                                            left: "calc(100% - 1px)",
-                                            top: -1, // Match border offset
-                                            width: `${((sessionSeconds - task.expected_time) / task.expected_time) * 100}%`,
-                                            maxWidth: "50%",
-                                            height: "calc(100% + 2px)", // Match full border height
-                                            background: "#ef4444",
-                                            border: "1px solid #ef4444",
-                                            borderLeft: "none",
-                                            borderRadius: "0 4px 4px 0",
+                                            width: `${isOvertime ? budgetPercent : spentPercent}%`, 
+                                            height: "100%", 
+                                            background: isRunning ? "var(--teal)" : "#bcc6cc",
                                             transition: "width 0.5s ease"
                                         }} />
-                                    )}
+                                        
+                                        {/* Red: Overtime Part (In same bar, no overflow) */}
+                                        {isOvertime && (
+                                            <div style={{ 
+                                                width: `${spentPercent - budgetPercent}%`, 
+                                                height: "100%", 
+                                                background: "#ef4444",
+                                                transition: "width 0.5s ease"
+                                            }} />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -355,6 +354,8 @@ export default function InternalTasksView({ compact = false }: Props) {
     const [newTaskDesc, setNewTaskDesc] = useState("");
     const [newTaskExpectedTime, setNewTaskExpectedTime] = useState("");
     const [creating, setCreating] = useState(false);
+    const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+    const [selectedDate, setSelectedDate] = useState<string | null>(today);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -387,8 +388,6 @@ export default function InternalTasksView({ compact = false }: Props) {
         setCreating(false);
     };
 
-    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-
     const pending = tasks.filter((t) => {
         const isDone = t.progress === 100;
         const isPast = t.task_date && t.task_date < today;
@@ -398,6 +397,11 @@ export default function InternalTasksView({ compact = false }: Props) {
     const completed = tasks.filter((t) => {
         return t.progress === 100;
     });
+
+    const filteredCompleted = useMemo(() => {
+        if (!selectedDate) return completed;
+        return completed.filter(t => t.completed_at?.startsWith(selectedDate));
+    }, [completed, selectedDate]);
 
 
     return (
@@ -498,11 +502,32 @@ export default function InternalTasksView({ compact = false }: Props) {
                         )}
                     </div>
                     <div>
-                        <div className="tasks-col-title">✅ Completed ({completed.length})</div>
-                        {completed.length === 0
-                            ? <p className="no-tasks">No completed tasks yet.</p>
+                        <div className="tasks-col-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+                            <span style={{ whiteSpace: "nowrap" }}>✅ Done ({filteredCompleted.length})</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <input 
+                                    type="date" 
+                                    value={selectedDate || ""} 
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    style={{ 
+                                        background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)",
+                                        borderRadius: 6, color: "#fff", fontSize: "0.75rem", padding: "2px 6px", outline: "none"
+                                    }}
+                                />
+                                {selectedDate && (
+                                    <button 
+                                        onClick={() => setSelectedDate(null)}
+                                        style={{ background: "none", border: "none", color: "var(--teal)", cursor: "pointer", fontSize: "0.75rem", padding: 0, fontWeight: 700 }}
+                                    >
+                                        Full History
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        {filteredCompleted.length === 0
+                            ? <p className="no-tasks">{selectedDate ? `No tasks done on ${selectedDate}` : "No completed tasks yet."}</p>
                             : <div className="tasks-card">
-                                {completed.map((t) => (
+                                {filteredCompleted.map((t) => (
                                     <TaskRow key={t.task_id} task={t} depth={0} onRefresh={load} />
                                 ))}
                             </div>
